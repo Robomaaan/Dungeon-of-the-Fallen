@@ -234,7 +234,7 @@ Robo (Projektarbeit Week 1, April 2026)
 **Aktueller Branch**: `main`  
 **Build Status**: ✅ Passing
 
-## 💾 Domänenmodell (Dönnerstag)
+## 💾 Domänenmodell (Donnerstag)
 
 ### Kernklassen
 ```csharp
