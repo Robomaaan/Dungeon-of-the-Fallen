@@ -3,9 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
-    /// <summary>
-    /// Basis-ViewModel mit INotifyPropertyChanged für MVVM-Datenbindung
-    /// </summary>
     public abstract class ViewModelBase : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -15,12 +12,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        protected void SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
+        protected void OnPropertyChanged(params string[] propertyNames)
         {
-            if (!Equals(field, value))
+            foreach (var propertyName in propertyNames)
             {
-                field = value;
-                OnPropertyChanged(propertyName);
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
     }

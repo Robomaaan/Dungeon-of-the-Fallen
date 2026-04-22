@@ -2,23 +2,23 @@ namespace DungeonOfTheFallen.Core.Models
 {
     public class Inventory
     {
-        private List<Item> items = new();
+        private readonly List<Item> _items = new();
 
-        public IReadOnlyList<Item> Items => items.AsReadOnly();
+        public IReadOnlyList<Item> Items => _items;
 
         public void Add(Item item)
         {
-            items.Add(item);
+            _items.Add(item);
         }
 
         public bool Remove(Item item)
         {
-            return items.Remove(item);
+            return _items.Remove(item);
         }
 
         public void Clear()
         {
-            items.Clear();
+            _items.Clear();
         }
     }
 }

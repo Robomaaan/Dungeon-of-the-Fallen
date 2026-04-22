@@ -2,10 +2,10 @@ namespace DungeonOfTheFallen.Core.Models
 {
     public class GameState
     {
-        public Player Player { get; set; }
-        public DungeonMap Map { get; set; }
-        public List<Enemy> Enemies { get; set; }
-        public List<string> CombatLog { get; set; }
+        public Player Player { get; }
+        public DungeonMap Map { get; }
+        public List<Enemy> Enemies { get; } = new();
+        public List<string> CombatLog { get; } = new();
         public bool IsGameOver { get; set; }
         public bool IsVictory { get; set; }
 
@@ -13,10 +13,6 @@ namespace DungeonOfTheFallen.Core.Models
         {
             Player = new Player("Hero");
             Map = new DungeonMap(dungeonWidth, dungeonHeight);
-            Enemies = new List<Enemy>();
-            CombatLog = new List<string>();
-            IsGameOver = false;
-            IsVictory = false;
         }
 
         public void AddCombatLogEntry(string message)

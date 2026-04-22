@@ -2,46 +2,45 @@ using DungeonOfTheFallen.Core.Models;
 
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
-    /// <summary>
-    /// ViewModel für Spieler-Status (HP, Level, XP, Gold)
-    /// </summary>
     public class PlayerViewModel : ViewModelBase
     {
-        private Player _model;
-        private string _statusText;
+        public Player Model { get; }
 
-        public Player Model => _model;
+        public string StatusText => string.Join(
+            " | ",
+            Name,
+            $"Lvl {Level} HP {HP}/{MaxHP}",
+            $"XP {XP}",
+            $"Gold {Gold}",
+            $"ATK {Attack} DEF {Defense}");
 
-        public string StatusText
-        {
-            get => _statusText;
-            private set => SetProperty(ref _statusText, value);
-        }
-
-        public string Name => _model.Name;
-        public int HP => _model.HP;
-        public int MaxHP => _model.MaxHP;
-        public int Level => _model.Level;
-        public int XP => _model.XP;
-        public int Gold => _model.Gold;
-        public int Attack => _model.Attack;
-        public int Defense => _model.Defense;
+        public string Name => Model.Name;
+        public int HP => Model.HP;
+        public int MaxHP => Model.MaxHP;
+        public int Level => Model.Level;
+        public int XP => Model.XP;
+        public int Gold => Model.Gold;
+        public int Attack => Model.Attack;
+        public int Defense => Model.Defense;
 
         public PlayerViewModel(Player player)
         {
-            _model = player;
-            _statusText = "";
-            UpdateStatus();
+            ArgumentNullException.ThrowIfNull(player);
+            Model = player;
         }
 
         public void UpdateStatus()
         {
-            StatusText = $"{Name} | Lvl {Level} HP {HP}/{MaxHP} | XP {XP} | Gold {Gold} | ATK {Attack} DEF {Defense}";
-            OnPropertyChanged(nameof(HP));
-            OnPropertyChanged(nameof(MaxHP));
-            OnPropertyChanged(nameof(Level));
-            OnPropertyChanged(nameof(XP));
-            OnPropertyChanged(nameof(Gold));
+            OnPropertyChanged(
+                nameof(StatusText),
+                nameof(Name),
+                nameof(HP),
+                nameof(MaxHP),
+                nameof(Level),
+                nameof(XP),
+                nameof(Gold),
+                nameof(Attack),
+                nameof(Defense));
         }
     }
 }
