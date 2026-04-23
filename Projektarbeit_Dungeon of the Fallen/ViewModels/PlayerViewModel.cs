@@ -9,10 +9,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public string StatusText => string.Join(
             " | ",
             Name,
-            $"Lvl {Level} HP {HP}/{MaxHP}",
-            $"XP {XP}",
+            $"Lvl {Level}  HP {HP}/{MaxHP}",
+            $"XP {XP}/{Level * 200}",
             $"Gold {Gold}",
-            $"ATK {Attack} DEF {Defense}");
+            $"ATK {Attack}  DEF {Defense}",
+            $"Potions {PotionCount}");
 
         public string Name => Model.Name;
         public int HP => Model.HP;
@@ -22,6 +23,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public int Gold => Model.Gold;
         public int Attack => Model.Attack;
         public int Defense => Model.Defense;
+        public int PotionCount => Model.Inventory.Items.Count(i => i.ItemType == ItemType.Potion);
 
         public PlayerViewModel(Player player)
         {
@@ -40,7 +42,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 nameof(XP),
                 nameof(Gold),
                 nameof(Attack),
-                nameof(Defense));
+                nameof(Defense),
+                nameof(PotionCount));
         }
     }
 }

@@ -1,0 +1,251 @@
+<Window x:Class="Projektarbeit_Dungeon_of_the_Fallen.CombatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="⚔ Kampf" Height="700" Width="960"
+        Background="#060a10" Foreground="#e0e0e0"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Closing="CombatWindow_Closing">
+
+    <Window.Resources>
+        <!-- HP-Bar Style -->
+        <Style x:Key="HpBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="#111" CornerRadius="5"
+                                BorderBrush="#333" BorderThickness="1">
+                            <Grid x:Name="PART_Track" ClipToBounds="True">
+                                <Border x:Name="PART_Indicator"
+                                        Background="{TemplateBinding Foreground}"
+                                        HorizontalAlignment="Left" CornerRadius="5"/>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Knopf-Style -->
+        <Style x:Key="CombatButton" TargetType="Button">
+            <Setter Property="Background" Value="#1a1a2a"/>
+            <Setter Property="Foreground" Value="#FFD700"/>
+            <Setter Property="BorderBrush" Value="#FFD700"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="24,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2a2a4a"/>
+                                <Setter Property="BorderBrush" Value="#FFE040"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44"/>   <!-- Header -->
+            <RowDefinition Height="330"/>  <!-- Battle arena -->
+            <RowDefinition Height="*"/>    <!-- Actions -->
+            <RowDefinition Height="110"/>  <!-- Log -->
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Grid.Row="0" Background="#0c1220"
+                BorderBrush="#1a2a40" BorderThickness="0,0,0,1">
+            <TextBlock Text="⚔  K A M P F  ⚔"
+                       FontSize="18" FontWeight="Bold" Foreground="#FFD700"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontFamily="Consolas"/>
+        </Border>
+
+        <!-- ═══ BATTLE ARENA ═══ -->
+        <Grid Grid.Row="1">
+            <!-- Dungeon floor background -->
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#050810" Offset="0"/>
+                    <GradientStop Color="#0a0f1c" Offset="0.5"/>
+                    <GradientStop Color="#080c15" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <!-- Floor hint -->
+            <Rectangle VerticalAlignment="Bottom" Height="40" Opacity="0.35">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#1a1a3a" Offset="0"/>
+                        <GradientStop Color="#2a2a5a" Offset="1"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+
+            <!-- Enemy area: top-right -->
+            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="30,16,50,0" Width="240">
+                <TextBlock Text="{Binding EnemyName}"
+                           FontSize="15" FontWeight="Bold" Foreground="#FF7777"
+                           Margin="0,0,0,4"/>
+                <ProgressBar Value="{Binding EnemyHP, Mode=OneWay}" Maximum="{Binding EnemyMaxHP}"
+                             Width="240" Style="{StaticResource HpBarStyle}"
+                             Foreground="#FF4444"/>
+                <TextBlock Foreground="#888" FontSize="11" Margin="0,2">
+                    <Run Text="{Binding EnemyHP, Mode=OneWay}"/>
+                    <Run Text=" / "/>
+                    <Run Text="{Binding EnemyMaxHP, Mode=OneWay}"/>
+                    <Run Text=" HP"/>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Enemy sprite: top-right, "behind" -->
+            <Canvas x:Name="EnemySpriteCanvas"
+                    Width="130" Height="160"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,60,40,0"/>
+
+            <!-- Player area: bottom-left -->
+            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                        Margin="50,0,0,16" Width="240">
+                <TextBlock Text="{Binding PlayerName}"
+                           FontSize="15" FontWeight="Bold" Foreground="#66BBFF"
+                           Margin="0,0,0,4"/>
+                <ProgressBar Value="{Binding PlayerHP, Mode=OneWay}" Maximum="{Binding PlayerMaxHP}"
+                             Width="240" Style="{StaticResource HpBarStyle}"
+                             Foreground="#44CC66"/>
+                <TextBlock Foreground="#888" FontSize="11" Margin="0,2">
+                    <Run Text="{Binding PlayerHP, Mode=OneWay}"/>
+                    <Run Text=" / "/>
+                    <Run Text="{Binding PlayerMaxHP, Mode=OneWay}"/>
+                    <Run Text=" HP"/>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Player sprite: bottom-left, "in front" -->
+            <Canvas x:Name="PlayerSpriteCanvas"
+                    Width="110" Height="160"
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                    Margin="40,0,0,55"/>
+
+            <!-- DICE AREA: center -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Margin="0,20,0,0">
+                <TextBlock x:Name="DiceLabel" Text=""
+                           FontSize="13" Foreground="#aaa" TextAlignment="Center"
+                           Margin="0,0,0,8"/>
+
+                <!-- Die face -->
+                <Border x:Name="DieBorder"
+                        Width="90" Height="90"
+                        Background="White"
+                        BorderBrush="#FFD700" BorderThickness="4"
+                        CornerRadius="10"
+                        HorizontalAlignment="Center">
+                    <Border.RenderTransformOrigin>0.5,0.5</Border.RenderTransformOrigin>
+                    <Border.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="DiceScale" ScaleX="1" ScaleY="1"/>
+                            <RotateTransform x:Name="DiceRotate" Angle="0"/>
+                            <TranslateTransform x:Name="DiceTranslate" Y="0"/>
+                        </TransformGroup>
+                    </Border.RenderTransform>
+
+                    <!-- Dice dots: 7 positions (TL TC TR ML C MR BL BC BR) -->
+                    <Canvas Width="90" Height="90">
+                        <Ellipse x:Name="Dot_TL" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="13" Canvas.Top="13" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_TR" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="63" Canvas.Top="13" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_ML" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="13" Canvas.Top="38" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_C"  Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="38" Canvas.Top="38" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_MR" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="63" Canvas.Top="38" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_BL" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="13" Canvas.Top="63" Visibility="Collapsed"/>
+                        <Ellipse x:Name="Dot_BR" Width="14" Height="14" Fill="#1a1a1a"
+                                 Canvas.Left="63" Canvas.Top="63" Visibility="Collapsed"/>
+                    </Canvas>
+                </Border>
+
+                <TextBlock x:Name="DiceResultLabel" Text=""
+                           FontSize="12" Foreground="#FFD700" TextAlignment="Center"
+                           FontWeight="Bold" Margin="0,6,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ ACTION PANEL ═══ -->
+        <Border Grid.Row="2" Background="#0c1220"
+                BorderBrush="#1a2a40" BorderThickness="0,1,0,1">
+            <Grid Margin="30,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="{Binding StatusMessage}"
+                           FontSize="15" Foreground="#cccccc"
+                           HorizontalAlignment="Center" Margin="0,0,0,12"
+                           FontStyle="Italic"/>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Content="⚔  ANGREIFEN"
+                            Command="{Binding AttackCommand}"
+                            Style="{StaticResource CombatButton}"
+                            Margin="0,0,20,0"/>
+                    <Button Content="{Binding PotionButtonText}"
+                            Command="{Binding UsePotionCommand}"
+                            Style="{StaticResource CombatButton}"
+                            Foreground="#FF88FF" BorderBrush="#FF88FF"
+                            Margin="0,0,20,0"/>
+                    <Button x:Name="CloseButton" Content="✕  SCHLIEẞEN"
+                            Click="CloseButton_Click"
+                            Style="{StaticResource CombatButton}"
+                            Foreground="#888" BorderBrush="#555"
+                            Visibility="Collapsed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ COMBAT LOG ═══ -->
+        <Border Grid.Row="3" Background="#060a10"
+                BorderBrush="#1a2a40" BorderThickness="0,1,0,0">
+            <Grid Margin="16,8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="📜 Kampfprotokoll"
+                           FontSize="11" FontWeight="Bold" Foreground="#FFD700"
+                           Margin="0,0,0,4"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding CombatLog}"
+                               Foreground="#aaaaaa" FontSize="11"
+                               FontFamily="Consolas" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

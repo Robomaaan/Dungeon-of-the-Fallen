@@ -2,9 +2,9 @@
 
 ## 📋 Übersicht
 
-**DungeonOfTheFallen** ist ein rundenbasiertes 2D-Dungeon-Crawler-Spiel im Fantasy-Stil, entwickelt als Projektarbeit in einer Woche mit **C# / .NET 8 / WPF**.
+**DungeonOfTheFallen** ist ein rundenbasiertes 2D-Dungeon-Crawler-Spiel im Fantasy-Stil, entwickelt als Projektarbeit mit **C# / .NET 8 / WPF**.
 
-Das Ziel: Ein spielbares Dungeon-Adventure mit Gegner-KI, Kampfsystem und Sieg/Niederlage-Bedingungen.
+Der aktuelle Stand ist ein spielbarer MVP mit Hauptmenü, Dungeon-Grid, Bewegung, Gegnern, Kampffenster, Loot, Tränken, Fallen, Heilungsraum, Save/Load und Sieg/Niederlage.
 
 **Visuelle Richtung**: Düsteres Fantasy-Thema, Top-Down 2D, inspiriert durch *Crown Trick* und *Shattered Pixel Dungeon*.
 
@@ -17,8 +17,8 @@ Das Ziel: Ein spielbares Dungeon-Adventure mit Gegner-KI, Kampfsystem und Sieg/N
 | **Sprache** | C# (.NET 8) |
 | **UI-Framework** | WPF (Windows Presentation Foundation) |
 | **Architektur** | MVVM (Model-View-ViewModel), ohne externe Frameworks |
-| **Persistenz** | XML-Serialisierung (Mittwoch) |
-| **Platform** | Windows Desktop (.NET 8 Windows) |
+| **Persistenz** | XML-Serialisierung über `SaveData` + `XmlGameRepository` |
+| **Plattform** | Windows Desktop (.NET 8 Windows) |
 
 ---
 
@@ -26,112 +26,112 @@ Das Ziel: Ein spielbares Dungeon-Adventure mit Gegner-KI, Kampfsystem und Sieg/N
 
 ```
 Projektarbeit_Dungeon of the Fallen/
-├── DungeonOfTheFallen.Core/               # Domänenlogik & Business Logic
+├── DungeonOfTheFallen.Core/               # Domänenlogik & Game-Services
 │   ├── Models/                            # Domänenmodelle
 │   │   ├── GameState.cs                   # Zentrale Spielzustand-Verwaltung
 │   │   ├── Player.cs                      # Spielercharakter (HP, XP, Inventory, Stats)
-│   │   ├── Enemy.cs                       # Gegner (Type, Stats, Rewards)
+│   │   ├── Enemy.cs                       # Gegner (Typ, Stats, Rewards)
 │   │   ├── Tile.cs & DungeonMap.cs        # Dungeon-Grid-Logik
 │   │   ├── Item.cs, Potion.cs             # Loot & Inventar
-│   │   ├── TileType.cs (Floor/Wall/Exit)  # Tile-Typen
-│   │   ├── EnemyType.cs (Goblin/Orc/Boss) # Gegner-Typen
-│   │   └── ItemType.cs (Gold/Potion/Key)  # Item-Typen
+│   │   ├── TileType.cs                    # Floor, Wall, Exit, Spawn, Trap, HealingRoom
+│   │   ├── EnemyType.cs                   # Goblin, Orc, Boss
+│   │   └── ItemType.cs                    # Gold, Potion, Key
 │   │
 │   ├── Services/                          # Game Services
-│   │   ├── TurnManager.cs                 # Rundenlogik (später)
-│   │   ├── CombatService.cs               # Kampf-Mechaniken (später)
-│   │   └── DungeonGenerator.cs            # Map-Generierung (später)
+│   │   ├── TurnManager.cs                 # Bewegung, Tile-Effekte, Enemy Turns
+│   │   └── CombatService.cs               # Wiederverwendbare Kampf-Logik
 │   │
 │   └── Persistence/                       # Repository-Pattern
-│       ├── IGameRepository.cs             # Interface (später)
-│       └── XmlGameRepository.cs           # XML-Implementation (später)
+│       ├── IGameRepository.cs             # Save/Load-Interface
+│       ├── SaveData.cs                    # XML-Save-Daten
+│       └── XmlGameRepository.cs           # XML-Implementation
 │
 ├── Projektarbeit_Dungeon of the Fallen/   # WPF-Präsentation
 │   ├── ViewModels/
-│   │   ├── ViewModelBase.cs               # ✅ Basis mit INotifyPropertyChanged
-│   │   ├── RelayCommand.cs                # ✅ Command-Implementation
-│   │   ├── MainViewModel.cs               # ✅ Zentrale ViewModel (GameState Binding)
-│   │   ├── TileViewModel.cs               # ✅ Einzeltile-Rendering
-│   │   └── PlayerViewModel.cs             # ✅ Player Status Display
+│   │   ├── ViewModelBase.cs               # Basis mit INotifyPropertyChanged
+│   │   ├── RelayCommand.cs                # Command-Implementation
+│   │   ├── MainViewModel.cs               # Haupt-Game-Flow & Map
+│   │   ├── CombatViewModel.cs             # Kampfablauf mit Würfeln
+│   │   ├── PlayerViewModel.cs             # Player Status Display
+│   │   └── TileViewModel.cs               # Einzeltile-Rendering
 │   │
-│   ├── MainWindow.xaml & .cs              # ✅ Hauptfenster mit Grid-Layout
+│   ├── MainMenuWindow.xaml & .cs          # Startmenü
+│   ├── MainWindow.xaml & .cs              # Hauptspiel
+│   ├── CombatWindow.xaml & .cs            # Kampfansicht
 │   ├── App.xaml & .cs
 │   │
-│   ├── Converters/                        # Value Converters (später)
-│   └── Styles/                            # Fantasy-Theme Resourcen (später)
+│   └── Converters/
+│       ├── BoolToVisibilityConverter.cs
+│       └── VictoryTextConverter.cs
 │
-└── README.md                              # Diese Datei
+├── Projektarbeit_Dungeon of the Fallen.sln
+└── README.md
 ```
 
 ---
 
 ## 🎮 Aktueller Entwicklungsstand
 
+Der aktuelle Branch enthält den kompletten spielbaren MVP.
+
 ### **Donnerstag (Do)** ✅ ABGESCHLOSSEN
 - ✅ Solution mit zwei Projekten aufgebaut
 - ✅ Core-Klassenbibliothek mit allen Domänenmodellen
 - ✅ Enums: `TileType`, `EnemyType`, `ItemType`
 - ✅ Modelle: `Player`, `Enemy`, `Tile`, `DungeonMap`, `GameState`, `Item`, `Potion`, `Inventory`
-- ✅ Build erfolgreich, App startet
-- ✅ README angelegt
+- ✅ Build erfolgreich
 
 ### **Freitag (Fr)** ✅ ABGESCHLOSSEN
-- ✅ MVVM-Grundgerüst (ViewModelBase, RelayCommand)
-- ✅ MainViewModel mit GameState-Integration
-- ✅ TileViewModel + PlayerViewModel für UI-Binding
-- ✅ MainWindow.xaml mit ItemsControl + UniformGrid (20×20 Grid)
-- ✅ Dunkles Fantasy-Farbschema (Hex-Farben)
-- ✅ Spieler ('P') sichtbar im Grid
-- ✅ Exit ('E') sichtbar
-- ✅ Wände ('█') mit Umrandung
-- ✅ Player Status Panel (HP, Level, XP, Gold, ATK/DEF)
-- ✅ Combat Log Placeholder
-- ✅ 0 Fehler, läuft stabil
+- ✅ MVVM-Grundgerüst (`ViewModelBase`, `RelayCommand`)
+- ✅ `MainViewModel`, `TileViewModel` und `PlayerViewModel`
+- ✅ Hauptfenster mit `ItemsControl` + `UniformGrid` für das 20x20 Grid
+- ✅ Dunkles Fantasy-Farbschema
+- ✅ Spielerfigur, Gegner, Items und Wände sichtbar im Grid
+- ✅ Statuspanel und Kampflog angebunden
 
-### **Montag (Mo)** ⏳ GEPLANT
-- ⏳ KeyBindings für Bewegung (WASD / Pfeile)
-- ⏳ Wand-Kollisionslogik
-- ⏳ 1–2 Gegnertypen spawnen
-- ⏳ TurnManager schreiben
-- ⏳ Gegner-Züge (zuerst zufällig/einfach richtungsbasiert)
-- ⏳ Grid nach jedem Zug aktualisieren
+### **Montag (Mo)** ✅ ABGESCHLOSSEN
+- ✅ `TurnManager` für Bewegung und Spielzug-Logik
+- ✅ Wand-Kollisionslogik
+- ✅ Gegner-Spawns
+- ✅ Tile-Effekte für Fallen und Heilungsraum
+- ✅ Gegner-Züge mit Jagd- und Zufallsverhalten
+- ✅ Item-Pickups und Loot
 
-### **Dienstag (Di)** ⏳ GEPLANT
-- ⏳ CombatService (Nahkampf wenn Nachbarschaft)
-- ⏳ Schaden/HP-Verlust/Tod
-- ⏳ Loot-System (Gold, Tränke)
-- ⏳ XP/Level-Aufstieg
-- ⏳ Boss-Gegner
-- ⏳ Dungeon-Exit (Gewinn-Bedingung)
-- ⏳ Kampflog aktualisieren
-- ⏳ MVP komplett spielbar
+### **Dienstag (Di)** ✅ ABGESCHLOSSEN
+- ✅ `CombatWindow` mit Würfelkampf
+- ✅ `CombatViewModel` mit Kampfphasen
+- ✅ Loot-System, XP und Level-Up
+- ✅ Boss-Gegner
+- ✅ Sieg- und Niederlage-Bedingungen
+- ✅ Kampflog aktualisiert sich live
 
-### **Mittwoch (Mi)** ⏳ GEPLANT
-- ⏳ IGameRepository + XmlGameRepository
-- ⏳ Save/Load-Funktionalität
-- ⏳ UI-Polish
-- ⏳ README vervollständigen
-- ⏳ Präsentationsvorbereitung
+### **Mittwoch (Mi)** ✅ ABGESCHLOSSEN
+- ✅ XML Save/Load
+- ✅ `MainMenuWindow`
+- ✅ UI-Polish und Bugfixes
+- ✅ README an den aktuellen Stand angepasst
 
 ---
 
-## 🚀 MVP-Features (Scope bis Dienstag)
+## 🚀 MVP-Features
 
 | Feature | Status |
 |---|---|
-| 20×20 Dungeon-Grid | ✅ |
+| 20x20 Dungeon-Grid | ✅ |
 | Spielerfigur sichtbar | ✅ |
-| Spieler-Bewegung | ⏳ Montag |
-| Gegner (2–3 Typen) | ⏳ Montag |
-| Gegner-KI (einfach) | ⏳ Montag |
-| Rundenbasierte Züge | ⏳ Montag |
-| Direkter Kampf | ⏳ Dienstag |
-| HP/XP/Level-System | ⏳ Dienstag |
-| Loot (Gold, Tränke) | ⏳ Dienstag |
-| Boss-Gegner | ⏳ Dienstag |
-| Dungeon-Ausgang | ⏳ Dienstag |
-| Kampflog | ✅ (UI placeholder) |
-| Sieg/Niederlage | ⏳ Dienstag |
+| Spieler-Bewegung | ✅ |
+| Gegner (Goblins, Orc, Boss) | ✅ |
+| Gegner-KI | ✅ |
+| Rundenbasierte Züge | ✅ |
+| Direkter Kampf | ✅ |
+| HP/XP/Level-System | ✅ |
+| Loot (Gold, Tränke) | ✅ |
+| Boss-Gegner | ✅ |
+| Dungeon-Ausgang | ✅ |
+| Kampflog | ✅ |
+| Sieg/Niederlage | ✅ |
+| Save/Load | ✅ |
+| Main Menu | ✅ |
 
 ---
 
@@ -147,16 +147,16 @@ Projektarbeit_Dungeon of the Fallen/
 ```bash
 # Repository klonen
 git clone https://github.com/Robomaaan/Dungeon-of-the-Fallen.git
-cd "Projektarbeit_Dungeon of the Fallen"
+cd "Dungeon-of-the-Fallen"
 
 # Build
-dotnet build --configuration Debug
+dotnet build "Projektarbeit_Dungeon of the Fallen.sln"
 
 # Run
-dotnet run --project "Projektarbeit_Dungeon of the Fallen" --configuration Debug
+dotnet run --project "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon of the Fallen.csproj"
 ```
 
-Oder einfach in Visual Studio öffnen und F5 drücken.
+Oder einfach die Solution in Visual Studio öffnen und F5 drücken.
 
 ---
 
@@ -167,8 +167,8 @@ Hintergrund:    #0a0a0a (Schwarz)
 Panel:          #1a1a1a (Dunkelgrau)
 Wand:           #333333 (Grau)
 Floor:          #1a1a1a (Dunkelgrau)
-Exit:           #FFD700 (Gold) ✨
-Spawn:          #00AA00 (Grün) 🌿
+Exit:           #FFD700 (Goldenes Ziel-Feld)
+Spawn:          #00AA00 (Grün)
 Trap:           #AA0000 (Rot)
 Healing Room:   #0088FF (Blau)
 Text:           #e0e0e0 (Hellgrau)
@@ -180,6 +180,10 @@ Titel:          #FFD700 (Gold)
 ## 🏗️ MVVM-Architektur
 
 ```
+App.xaml.cs
+    ↓
+MainMenuWindow.xaml
+    ↓ (Neues Spiel / Laden)
 MainWindow.xaml
     ↓ (DataContext)
 MainViewModel
@@ -189,32 +193,36 @@ MainViewModel
          └── [Jede TileViewModel bindet auf Tile-Modell]
              ├── DisplayText (P/E/I/█)
              └── BackgroundColor (je nach TileType)
+
+CombatWindow.xaml
+    ↓ (DataContext)
+CombatViewModel
+    ├── Würfelanimation
+    ├── Angriff / Potion-Zug
+    └── Rückgabe an `MainWindow`
 ```
 
 **Datenfluss:**
-1. Spieler-Input → Command
-2. MainViewModel verarbeitet Logik
-3. GameState wird aktualisiert
+1. Spieler-Input oder Fenster-Event → Command / Event
+2. ViewModel verarbeitet die Logik
+3. `GameState` wird aktualisiert
 4. UI-Bindings aktualisieren automatisch
-5. Tiles re-rendern sich selbst
+5. `CombatWindow` meldet das Ergebnis nach der Animation zurück
 
 ---
 
 ## 📝 Bekannte Einschränkungen (MVP)
 
 - **Prozeduraler Generator**: Noch nicht implementiert → Hardcoded Test-Map
-- **Gegner-KI**: Einfache zufällige Bewegung (Montag)
-- **Grafiken/Assets**: Nur Text-Symbole (P, E, I, █) statt Sprites
 - **Sound/Musik**: Nicht vorhanden
-- **Speichern/Laden**: Erst ab Mittwoch
-- **Mobile/Web**: Nur Windows Desktop
 - **Mehrere Ebenen**: Nicht im MVP
+- **Automatisierte Tests**: Noch keine Unit-Tests vorhanden
 
 ---
 
 ## 🧪 Tests
 
-Derzeit keine Unit-Tests implementiert. MVP-Fokus liegt auf Funktionalität.
+Derzeit keine Unit-Tests implementiert. Der Build ist aktuell erfolgreich.
 
 ---
 
@@ -226,53 +234,29 @@ Dieses Projekt ist Lernprojekt einer Projektarbeitswoche. Frei verwendbar für L
 
 ## 👨‍💻 Entwickler
 
-Robo (Projektarbeit Week 1, April 2026)
+Robo (Projektarbeit, April 2026)
 
 ---
 
-**Letztes Update**: Freitag, 22. April 2026  
+**Letztes Update**: Donnerstag, 23. April 2026  
 **Aktueller Branch**: `main`  
 **Build Status**: ✅ Passing
 
-## 💾 Domänenmodell (Donnerstag)
+## 💾 Domänenmodell (Kurzüberblick)
 
 ### Kernklassen
 ```csharp
-// Player mit Stats
-public class Player
-{
-    public int HP, MaxHP, Attack, Defense;
-    public int XP, Level, Gold;
-    public int PositionX, PositionY;
-    public Inventory Inventory;
-}
-
-// Gegner mit variabler Difficulty
-public class Enemy
-{
-    public EnemyType Type;  // Goblin, Orc, Boss
-    public int HP, Attack, Defense;
-    public bool IsBoss;
-    public int GoldReward, XpReward;
-}
-
-// Tile-basiertes Grid
-public class Tile
-{
-    public TileType Type;           // Floor, Wall, Exit, Spawn
-    public Enemy? Enemy;
-    public Item? Item;
-    public bool HasPlayer;
-}
-
-// GameState: zentrale Verwaltung
 public class GameState
 {
-    public Player Player;
-    public DungeonMap Map;
-    public List<Enemy> Enemies;
-    public List<string> CombatLog;
-    public bool IsGameOver, IsVictory;
+    public Player Player { get; }
+    public DungeonMap Map { get; }
+    public List<Enemy> Enemies { get; } = new();
+    public List<string> CombatLog { get; } = new();
+}
+
+public class TurnManager
+{
+    // Bewegt den Spieler, löst Tile-Effekte aus und führt Enemy Turns aus
 }
 ```
 
@@ -282,14 +266,12 @@ public class GameState
 
 ### Bauen
 ```bash
-cd "Projektarbeit_Dungeon of the Fallen"
-dotnet build
+dotnet build "Projektarbeit_Dungeon of the Fallen.sln"
 ```
 
 ### Ausführen
 ```bash
-cd "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon of the Fallen"
-dotnet run
+dotnet run --project "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon of the Fallen.csproj"
 ```
 
 ---
@@ -298,31 +280,32 @@ dotnet run
 
 | Tag | Ziel | Status |
 |-----|------|--------|
-| **Do** | Basis-Setup | ✅ Laufend |
-| **Fr** | MVVM + Grid-Rendering | ⏳ Geplant |
-| **Mo** | Bewegung + Gegner | ⏳ Geplant |
-| **Di** | Kampfsystem + MVP | ⏳ Geplant |
-| **Mi** | Save/Load + Polish | ⏳ Geplant |
+| **Do** | Basis-Setup und Core-Modelle | ✅ |
+| **Fr** | MVVM + Grid-Rendering | ✅ |
+| **Mo** | Bewegung + Gegner + Tile-Effekte | ✅ |
+| **Di** | Kampfsystem + MVP | ✅ |
+| **Mi** | Save/Load + Polish | ✅ |
 
 ---
 
 ## 🎯 Known Constraints & Design-Entscheidungen
 
-1. **Hardcoded Map statt Procedural Gen**: Simplifiziert die Implementierung, fokussiert auf Spielmechanik
-2. **Rundenbasierte Züge statt Echtzeit**: Vereinfacht AI und kollisionserkennung
-3. **Brushes statt Sprites**: Keine großen Asset-Anforderungen anfangs
-4. **XML statt Datenbank**: Leicht zu speichern/laden ohne externe Dependencies
-5. **Kein großes MVVM-Framework**: Eigene ViewModelBase + RelayCommand für Simplizität
+1. **Hardcoded Map statt Procedural Gen**: Simplifiziert die Implementierung und hält den Fokus auf den Spielmechaniken.
+2. **Rundenbasierte Züge statt Echtzeit**: Vereinfacht Kampf- und Gegnerlogik.
+3. **Brushes statt Sprites**: Keine großen Asset-Anforderungen für den Prototyp.
+4. **XML statt Datenbank**: Leicht speicherbar, lesbar und ohne externe Dependencies.
+5. **Kein großes MVVM-Framework**: Eigene `ViewModelBase` und `RelayCommand` für eine schlanke Struktur.
 
 ---
 
 ## 📖 Weitere Informationen
 
-- **Projektname**: DungeonOfTheFallen
-- **Team**: Einzelentwicklung (Pair Programming mit KI-Assistent)
-- **Zeitrahmen**: Woche vom [Datum]
+- **Projektname**: `DungeonOfTheFallen`
+- **Team**: Einzelentwicklung
+- **Unterstützung**: Pair Programming mit KI-Assistent
+- **Zeitrahmen**: Projektwoche im April 2026
 - **Zielplattform**: Windows Desktop (.NET 8)
 
 ---
 
-*Zuletzt aktualisiert: Donnerstag, Projektstart*
+*Zuletzt aktualisiert: Donnerstag, 23. April 2026*
