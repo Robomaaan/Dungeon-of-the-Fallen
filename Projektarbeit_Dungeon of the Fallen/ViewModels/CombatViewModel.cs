@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using DungeonOfTheFallen.Core.Models;
+using DungeonOfTheFallen.Core.Services;
 
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
@@ -14,9 +15,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
     public class CombatViewModel : ViewModelBase
     {
+        private const int MaxCombatLogLines = 7;
+
         private readonly GameState _gameState;
         private readonly Enemy _enemy;
-        private readonly Random _random = new Random();
+        private readonly CombatService _combatService;
 
         private CombatPhase _phase = CombatPhase.PlayerTurn;
         private int _playerDiceValue;
@@ -86,6 +89,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             _gameState = gameState;
             _enemy = enemy;
+            _combatService = new CombatService(gameState);
 
             AttackCommand = new RelayCommand(_ => StartPlayerAttack(), _ => IsPlayerTurn);
             UsePotionCommand = new RelayCommand(_ => StartPotionTurn(), _ => IsPlayerTurn && HasPotions);
@@ -101,7 +105,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (!IsPlayerTurn) return;
             Phase = CombatPhase.PlayerRolling;
             StatusMessage = "Du würfelst...";
-            int roll = _random.Next(1, 7);
+            int roll = _combatService.RollDice();
             PlayerDiceValue = roll;
             DiceRollStarted?.Invoke(roll, true);
         }
@@ -110,114 +114,88 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             if (!IsPlayerTurn || !HasPotions) return;
 
-            var potion = _gameState.Player.Inventory.Items.OfType<Potion>().First();
-            int heal = Math.Min(potion.HealingAmount, _gameState.Player.MaxHP - _gameState.Player.HP);
-            _gameState.Player.HP += heal;
-            _gameState.Player.Inventory.Remove(potion);
-            AddLog($"Du benutzt {potion.Name}: +{heal} HP!");
-            _gameState.AddCombatLogEntry($"[HEAL] Trank benutzt: +{heal} HP");
-            NotifyStats();
+            var result = _combatService.ExecuteCombat(_enemy, CombatActionType.UsePotion, forcedEnemyRoll: _combatService.RollDice());
+            ApplyCombatResult(result);
 
-            // Enemy still gets a turn
+            if (result.PlayerDefeated || result.EnemyDefeated)
+                return;
+
+            EnemyDiceValue = result.EnemyRoll;
             Phase = CombatPhase.EnemyRolling;
             StatusMessage = $"{_enemy.Name} würfelt...";
-            int roll = _random.Next(1, 7);
-            EnemyDiceValue = roll;
-            DiceRollStarted?.Invoke(roll, false);
+            DiceRollStarted?.Invoke(result.EnemyRoll, false);
         }
 
         // === Called by CombatWindow after animation completes ===
 
         public void OnPlayerDiceAnimationComplete()
         {
-            int baseDmg = Math.Max(1, _gameState.Player.Attack - _enemy.Defense / 2);
-            int diceBonus = PlayerDiceValue - 3; // -2 to +3
-            int damage = Math.Max(1, baseDmg + diceBonus);
+            var result = _combatService.ExecuteCombat(_enemy, CombatActionType.Attack, PlayerDiceValue);
 
-            _enemy.HP -= damage;
-            AddLog($"Du würfelst {PlayerDiceValue} → {damage} Schaden an {_enemy.Name}! (HP {Math.Max(0, _enemy.HP)}/{_enemy.MaxHP})");
-            _gameState.AddCombatLogEntry($"[COMBAT] Du greifst {_enemy.Name} für {damage} an (Wurf: {PlayerDiceValue})");
-            NotifyStats();
+            AddLog($"Du würfelst {PlayerDiceValue} → {result.PlayerDamageDealt} Schaden an {_enemy.Name}! (HP {Math.Max(0, _enemy.HP)}/{_enemy.MaxHP})");
+            ApplyCombatResult(result);
 
-            if (!_enemy.IsAlive)
-            {
-                OnEnemyDefeated();
+            if (result.PlayerDefeated || result.EnemyDefeated)
                 return;
-            }
 
+            EnemyDiceValue = result.EnemyRoll;
             Phase = CombatPhase.EnemyRolling;
             StatusMessage = $"{_enemy.Name} würfelt zurück...";
-            int roll = _random.Next(1, 7);
-            EnemyDiceValue = roll;
-            DiceRollStarted?.Invoke(roll, false);
+            DiceRollStarted?.Invoke(result.EnemyRoll, false);
         }
 
         public void OnEnemyDiceAnimationComplete()
         {
-            int baseDmg = Math.Max(1, _enemy.Attack - _gameState.Player.Defense / 2);
-            int diceBonus = EnemyDiceValue - 3;
-            int damage = Math.Max(1, baseDmg + diceBonus);
-
-            _gameState.Player.HP -= damage;
-            AddLog($"{_enemy.Name} würfelt {EnemyDiceValue} → {damage} Schaden an dir! (HP {Math.Max(0, _gameState.Player.HP)}/{_gameState.Player.MaxHP})");
-            _gameState.AddCombatLogEntry($"[COMBAT] {_enemy.Name} greift für {damage} an (Wurf: {EnemyDiceValue})");
-            NotifyStats();
-
             if (!_gameState.Player.IsAlive)
             {
-                _gameState.AddCombatLogEntry($"[DEFEAT] Du wurdest von {_enemy.Name} besiegt!");
                 Phase = CombatPhase.Defeat;
                 StatusMessage = "Du bist gefallen...";
                 AddLog("Du bist gefallen!");
+                NotifyStats();
                 return;
             }
 
             Phase = CombatPhase.PlayerTurn;
             StatusMessage = "Dein Zug!";
+            NotifyStats();
         }
 
-        private void OnEnemyDefeated()
+        private void ApplyCombatResult(CombatTurnResult result)
         {
-            int xpReward = _enemy.EnemyType == EnemyType.Boss ? 500 : (_enemy.EnemyType == EnemyType.Orc ? 150 : 100);
-            _gameState.Player.XP += xpReward;
-            _gameState.AddCombatLogEntry($"[XP] +{xpReward} Erfahrung!");
-
-            while (_gameState.Player.XP >= _gameState.Player.Level * 200)
+            if (result.PlayerUsedPotion)
             {
-                _gameState.Player.Level++;
-                _gameState.Player.MaxHP += 10;
-                _gameState.Player.HP = _gameState.Player.MaxHP;
-                _gameState.Player.Attack += 2;
-                _gameState.Player.Defense += 1;
-                _gameState.AddCombatLogEntry($"[LEVEL UP] Level {_gameState.Player.Level}!");
-                AddLog($"⭐ LEVEL UP! Du bist jetzt Level {_gameState.Player.Level}!");
+                AddLog($"Du benutzt {result.UsedPotionName}: +{result.HealingDone} HP!");
             }
 
-            int goldReward = _enemy.EnemyType == EnemyType.Boss ? 500 : (_enemy.EnemyType == EnemyType.Orc ? 100 : 50);
-            _gameState.Player.Gold += goldReward;
-            _gameState.AddCombatLogEntry($"[LOOT] +{goldReward} Gold!");
-            AddLog($"+{goldReward} Gold! +{xpReward} XP!");
-
-            if (_enemy.EnemyType == EnemyType.Boss)
+            if (result.EnemyDamageDealt > 0)
             {
-                _gameState.Player.Inventory.Add(new Potion("Heiltrank", 50));
-                _gameState.AddCombatLogEntry("[LOOT] Heiltrank gefunden!");
-                AddLog("Heiltrank erbeutet!");
+                AddLog($"{_enemy.Name} würfelt {result.EnemyRoll} → {result.EnemyDamageDealt} Schaden an dir! (HP {Math.Max(0, _gameState.Player.HP)}/{_gameState.Player.MaxHP})");
             }
 
-            _gameState.Enemies.Remove(_enemy);
-            var tile = _gameState.Map.GetTile(_enemy.PositionX, _enemy.PositionY);
-            if (tile != null) tile.Enemy = null;
+            if (result.EnemyDefeated)
+            {
+                AddLog($"+{result.GoldReward} Gold! +{result.XpReward} XP!");
+                if (result.PlayerLeveledUp)
+                    AddLog($"⭐ LEVEL UP! Du bist jetzt Level {_gameState.Player.Level}!");
 
-            Phase = CombatPhase.Victory;
-            StatusMessage = $"{_enemy.Name} besiegt!";
+                Phase = CombatPhase.Victory;
+                StatusMessage = $"{_enemy.Name} besiegt!";
+            }
+            else if (result.PlayerDefeated)
+            {
+                Phase = CombatPhase.Defeat;
+                StatusMessage = "Du bist gefallen...";
+                AddLog("Du bist gefallen!");
+            }
+
+            NotifyStats();
         }
 
         private void AddLog(string message)
         {
             var lines = CombatLog.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
             lines.Add(message);
-            if (lines.Count > 7) lines = lines.Skip(lines.Count - 7).ToList();
+            if (lines.Count > MaxCombatLogLines) lines = lines.Skip(lines.Count - MaxCombatLogLines).ToList();
             CombatLog = string.Join("\n", lines);
         }
 

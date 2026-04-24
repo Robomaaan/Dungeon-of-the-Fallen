@@ -9,6 +9,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
     public class MainViewModel : ViewModelBase
     {
         private const int DungeonSize = 20;
+        private const int CombatLogMaxEntries = 8;
         private const int SpawnX = 2;
         private const int SpawnY = 2;
         private const int ExitX = 17;
@@ -148,18 +149,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void SaveGame()
         {
-            var data = new SaveData
-            {
-                PlayerName = GameState.Player.Name,
-                PlayerHP = GameState.Player.HP,
-                PlayerMaxHP = GameState.Player.MaxHP,
-                PlayerAttack = GameState.Player.Attack,
-                PlayerDefense = GameState.Player.Defense,
-                PlayerXP = GameState.Player.XP,
-                PlayerLevel = GameState.Player.Level,
-                PlayerGold = GameState.Player.Gold,
-                PotionCount = GameState.Player.Inventory.Items.Count(i => i.ItemType == ItemType.Potion)
-            };
+            var data = SaveDataMapper.ToSaveData(GameState);
             _repository.Save(data, SaveFileName);
             GameState.AddCombatLogEntry("[SAVE] Game saved successfully!");
             UpdateCombatLog();
@@ -175,21 +165,14 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 return;
             }
 
-            GameState.Player.HP = data.PlayerHP;
-            GameState.Player.MaxHP = data.PlayerMaxHP;
-            GameState.Player.Attack = data.PlayerAttack;
-            GameState.Player.Defense = data.PlayerDefense;
-            GameState.Player.XP = data.PlayerXP;
-            GameState.Player.Level = data.PlayerLevel;
-            GameState.Player.Gold = data.PlayerGold;
+            IsGameOver = false;
+            IsVictory = false;
+            SaveDataMapper.ApplyToGameState(GameState, data);
 
-            GameState.Player.Inventory.Clear();
-            for (int i = 0; i < data.PotionCount; i++)
-                GameState.Player.Inventory.Add(new Potion("Health Potion", 25));
-
-            GameState.AddCombatLogEntry("[LOAD] Game loaded! Stats restored.");
+            GameState.AddCombatLogEntry($"[LOAD] Game loaded! Save v{data.SaveVersion} restored.");
             UpdateAllTiles();
             UpdateCombatLog();
+            CheckGameConditions();
         }
 
         private void SpawnEnemies()
@@ -200,7 +183,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (positions.Count > 0)
             {
                 var pos = positions[random.Next(positions.Count)];
-                var goblin = new Enemy("Goblin", EnemyType.Goblin, maxHP: 20, attack: 5, defense: 2);
+                var goblin = EnemyFactory.CreateGoblin();
                 goblin.PositionX = pos.x;
                 goblin.PositionY = pos.y;
                 GameState.Enemies.Add(goblin);
@@ -212,7 +195,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (positions.Count > 0)
             {
                 var pos = positions[random.Next(positions.Count)];
-                var goblin2 = new Enemy("Goblin", EnemyType.Goblin, maxHP: 20, attack: 5, defense: 2);
+                var goblin2 = EnemyFactory.CreateGoblin();
                 goblin2.PositionX = pos.x;
                 goblin2.PositionY = pos.y;
                 GameState.Enemies.Add(goblin2);
@@ -224,7 +207,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (positions.Count > 0)
             {
                 var pos = positions[random.Next(positions.Count)];
-                var orc = new Enemy("Orc", EnemyType.Orc, maxHP: 35, attack: 8, defense: 4);
+                var orc = EnemyFactory.CreateOrc();
                 orc.PositionX = pos.x;
                 orc.PositionY = pos.y;
                 GameState.Enemies.Add(orc);
@@ -239,7 +222,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 var bossPos = positions
                     .OrderBy(p => Math.Abs(p.x - ExitX) + Math.Abs(p.y - ExitY))
                     .First();
-                var boss = new Enemy("Dragon Boss", EnemyType.Boss, maxHP: 80, attack: 15, defense: 6, isBoss: true);
+                var boss = EnemyFactory.CreateBoss();
                 boss.PositionX = bossPos.x;
                 boss.PositionY = bossPos.y;
                 GameState.Enemies.Add(boss);
@@ -289,20 +272,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void RestartGame()
         {
-            // Spieler-Stats komplett zurücksetzen
-            GameState.Player.HP = 50;
-            GameState.Player.MaxHP = 50;
-            GameState.Player.Attack = 10;
-            GameState.Player.Defense = 5;
-            GameState.Player.XP = 0;
-            GameState.Player.Level = 1;
-            GameState.Player.Gold = 0;
-            GameState.Player.PositionX = SpawnX;
-            GameState.Player.PositionY = SpawnY;
-            GameState.Player.Inventory.Clear();
-
-            GameState.Enemies.Clear();
-            GameState.CombatLog.Clear();
+            GameState = new GameState(DungeonSize, DungeonSize);
+            _turnManager = new TurnManager(GameState);
+            PlayerViewModel = new PlayerViewModel(GameState.Player);
+            OnPropertyChanged(nameof(GameState), nameof(PlayerViewModel), nameof(DungeonWidth), nameof(DungeonHeight));
 
             IsGameOver = false;
             IsVictory = false;
@@ -344,7 +317,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             }
 
             if (GameState.CombatLog.Count > 0)
-                CombatLog = string.Join("\n", GameState.CombatLog.TakeLast(8));
+                CombatLog = string.Join("\n", GameState.CombatLog.TakeLast(CombatLogMaxEntries));
         }
 
         private void InitializeDemoMap()

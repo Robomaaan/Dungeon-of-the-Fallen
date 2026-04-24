@@ -7,9 +7,7 @@ namespace DungeonOfTheFallen.Core.Services
     /// </summary>
     public class CombatService
     {
-        private GameState _gameState;
-        private Random _random = new Random();
-
+        private readonly GameState _gameState;
         public CombatService(GameState gameState)
         {
             _gameState = gameState;
@@ -18,55 +16,101 @@ namespace DungeonOfTheFallen.Core.Services
         /// <summary>
         /// Initiiert einen Kampf zwischen Spieler und Gegner
         /// </summary>
-        public void ExecuteCombat(Enemy enemy)
+        public CombatTurnResult ExecuteCombat(Enemy enemy, CombatActionType actionType, int? forcedPlayerRoll = null, int? forcedEnemyRoll = null)
         {
+            var result = new CombatTurnResult();
+
             if (!_gameState.Player.IsAlive || !enemy.IsAlive)
-                return;
+                return result;
 
-            // Spieler greift an
-            int playerDamage = CalculateDamage(_gameState.Player.Attack, enemy.Defense);
-            enemy.HP -= playerDamage;
-            _gameState.AddCombatLogEntry($"[COMBAT] You attack {enemy.Name} for {playerDamage} damage!");
-
-            if (!enemy.IsAlive)
+            if (actionType == CombatActionType.UsePotion)
             {
-                _gameState.AddCombatLogEntry($"[VICTORY] {enemy.Name} defeated!");
-                OnEnemyDefeated(enemy);
-                return;
+                UsePotion(result);
+                if (!_gameState.Player.IsAlive)
+                    return result;
+            }
+            else
+            {
+                int playerRoll = forcedPlayerRoll ?? RollDice();
+                result.PlayerRoll = playerRoll;
+
+                int playerDamage = CalculateDamage(_gameState.Player.Attack, enemy.Defense, playerRoll);
+                result.PlayerDamageDealt = playerDamage;
+                enemy.HP -= playerDamage;
+                AddResultMessage(result, $"[COMBAT] Du greifst {enemy.Name} für {playerDamage} Schaden an! (Wurf: {playerRoll})");
+
+                if (!enemy.IsAlive)
+                {
+                    HandleEnemyDefeat(enemy, result);
+                    return result;
+                }
             }
 
-            // Gegner greift zurück
-            int enemyDamage = CalculateDamage(enemy.Attack, _gameState.Player.Defense);
+            int enemyRoll = forcedEnemyRoll ?? RollDice();
+            result.EnemyRoll = enemyRoll;
+            int enemyDamage = CalculateDamage(enemy.Attack, _gameState.Player.Defense, enemyRoll);
+            result.EnemyDamageDealt = enemyDamage;
             _gameState.Player.HP -= enemyDamage;
-            _gameState.AddCombatLogEntry($"[COMBAT] {enemy.Name} attacks you for {enemyDamage} damage!");
+            AddResultMessage(result, $"[COMBAT] {enemy.Name} greift dich für {enemyDamage} Schaden an! (Wurf: {enemyRoll})");
 
             if (!_gameState.Player.IsAlive)
             {
-                _gameState.AddCombatLogEntry($"[DEFEAT] You have been defeated by {enemy.Name}!");
+                result.PlayerDefeated = true;
+                AddResultMessage(result, $"[DEFEAT] Du wurdest von {enemy.Name} besiegt!");
             }
+
+            return result;
         }
 
         /// <summary>
         /// Berechnet Schaden basierend auf Angriff und Verteidigung
         /// </summary>
-        private int CalculateDamage(int attack, int defense)
+        public int RollDice()
         {
-            int baseDamage = attack - (defense / 2);
-            int variance = _random.Next(-2, 3); // Zufälligkeit
-            return Math.Max(1, baseDamage + variance);
+            return Dice.RollD6();
         }
 
-        /// <summary>
-        /// Wird aufgerufen wenn Gegner besiegt ist
-        /// </summary>
-        private void OnEnemyDefeated(Enemy enemy)
+        public int CalculateDamage(int attack, int defense, int roll)
         {
-            // XP geben
-            int xpReward = enemy.EnemyType == EnemyType.Boss ? 500 : (enemy.EnemyType == EnemyType.Orc ? 150 : 100);
-            _gameState.Player.XP += xpReward;
-            _gameState.AddCombatLogEntry($"[XP] +{xpReward} experience!");
+            int baseDamage = attack - (defense / 2);
+            int diceBonus = roll - 3;
+            return Math.Max(1, baseDamage + diceBonus);
+        }
 
-            // Level aufsteigen?
+        private void UsePotion(CombatTurnResult result)
+        {
+            var potion = _gameState.Player.Inventory.Items.OfType<Potion>().FirstOrDefault();
+            if (potion == null)
+            {
+                AddResultMessage(result, "[INFO] Kein Trank im Inventar!");
+                return;
+            }
+
+            int heal = Math.Min(potion.HealingAmount, _gameState.Player.MaxHP - _gameState.Player.HP);
+            _gameState.Player.HP += heal;
+            _gameState.Player.Inventory.Remove(potion);
+
+            result.PlayerUsedPotion = true;
+            result.HealingDone = heal;
+            result.UsedPotionName = potion.Name;
+
+            AddResultMessage(result, $"[HEAL] Trank benutzt: {potion.Name} (+{heal} HP)");
+        }
+
+        private void HandleEnemyDefeat(Enemy enemy, CombatTurnResult result)
+        {
+            result.EnemyDefeated = true;
+            AddResultMessage(result, $"[VICTORY] {enemy.Name} besiegt!");
+
+            var rewards = GetRewardProfile(enemy);
+            _gameState.Player.XP += rewards.XpReward;
+            _gameState.Player.Gold += rewards.GoldReward;
+            result.XpReward = rewards.XpReward;
+            result.GoldReward = rewards.GoldReward;
+
+            AddResultMessage(result, $"[XP] +{rewards.XpReward} Erfahrung!");
+            AddResultMessage(result, $"[LOOT] +{rewards.GoldReward} Gold!");
+
             while (_gameState.Player.XP >= _gameState.Player.Level * 200)
             {
                 _gameState.Player.Level++;
@@ -74,34 +118,36 @@ namespace DungeonOfTheFallen.Core.Services
                 _gameState.Player.HP = _gameState.Player.MaxHP;
                 _gameState.Player.Attack += 2;
                 _gameState.Player.Defense += 1;
-                _gameState.AddCombatLogEntry($"[LEVEL UP] You are now level {_gameState.Player.Level}!");
+                result.PlayerLeveledUp = true;
+                AddResultMessage(result, $"[LEVEL UP] Du bist jetzt Level {_gameState.Player.Level}!");
             }
 
-            // Loot droppen
-            DropLoot(enemy);
+            if (rewards.DropsBossPotion)
+            {
+                _gameState.Player.Inventory.Add(new Potion("Heiltrank", 50));
+                AddResultMessage(result, "[LOOT] Heiltrank gefunden!");
+            }
 
-            // Gegner von der Map entfernen
             _gameState.Enemies.Remove(enemy);
             var tile = _gameState.Map.GetTile(enemy.PositionX, enemy.PositionY);
             if (tile != null)
                 tile.Enemy = null;
         }
 
-        /// <summary>
-        /// Gegner droppt Loot
-        /// </summary>
-        private void DropLoot(Enemy enemy)
+        private EnemyRewardProfile GetRewardProfile(Enemy enemy)
         {
-            int goldReward = enemy.EnemyType == EnemyType.Boss ? 500 : (enemy.EnemyType == EnemyType.Orc ? 100 : 50);
-            _gameState.Player.Gold += goldReward;
-            _gameState.AddCombatLogEntry($"[LOOT] +{goldReward} gold!");
-
-            // Seltene Tränke vom Boss
-            if (enemy.EnemyType == EnemyType.Boss)
+            return enemy.EnemyType switch
             {
-                _gameState.Player.Inventory.Add(new Potion("Health Potion", 50));
-                _gameState.AddCombatLogEntry($"[LOOT] Found a Health Potion!");
-            }
+                EnemyType.Boss => new EnemyRewardProfile { GoldReward = 500, XpReward = 500, DropsBossPotion = true },
+                EnemyType.Orc => new EnemyRewardProfile { GoldReward = 100, XpReward = 150 },
+                _ => new EnemyRewardProfile { GoldReward = 50, XpReward = 100 }
+            };
+        }
+
+        private void AddResultMessage(CombatTurnResult result, string message)
+        {
+            result.Messages.Add(message);
+            _gameState.AddCombatLogEntry(message);
         }
     }
 }
