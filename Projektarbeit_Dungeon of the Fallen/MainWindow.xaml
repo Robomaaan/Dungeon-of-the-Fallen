@@ -54,7 +54,7 @@
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Image Source="{Binding AssetPath}"
+                        <Image Source="{Binding AssetPath, Converter={StaticResource FallbackImage}}"
                                Width="{Binding Width}"
                                Height="{Binding Height}"
                                Opacity="{Binding Opacity}"

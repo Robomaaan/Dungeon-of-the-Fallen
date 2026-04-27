@@ -8,16 +8,19 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
     /// </summary>
     public class AssetRegistry
     {
-        private const string MissingAssetPath = "/Assets/UI/missing_asset.png";
-        private const string PlaceholderAssetPath = "/Assets/UI/placeholder.png";
+        /// <summary>
+        /// Fallback asset shown when an asset is missing or cannot be found.
+        /// Should be a simple colored/textured placeholder PNG that's visually distinct.
+        /// </summary>
+        private const string MissingAssetPath = "/Assets/system/missing_asset.png";
 
         /// <summary>
         /// Gets the floor tile asset for a given tile.
-        /// Returns a fallback if the asset doesn't exist.
+        /// Returns the missing asset fallback if the tile is null.
         /// </summary>
         public string GetFloorAsset(Tile tile)
         {
-            if (tile == null) return PlaceholderAssetPath;
+            if (tile == null) return MissingAssetPath;
 
             return tile.TileType switch
             {
@@ -44,7 +47,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 TileType.Puzzle => "/Assets/Tiles/StoneDungeon/Special/puzzle_tile_01.png",
                 TileType.KeyPedestal => "/Assets/Tiles/StoneDungeon/Special/key_pedestal_01.png",
                 TileType.Wall => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
-                _ => PlaceholderAssetPath
+                _ => MissingAssetPath
             };
         }
 
@@ -55,7 +58,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         public string GetWallAsset(Tile tile, DungeonMap? map = null)
         {
             if (tile?.TileType != TileType.Wall)
-                return string.Empty;
+                return MissingAssetPath;
 
             // For now, return a single wall asset. Could be extended with orientation detection.
             return "/Assets/Tiles/StoneDungeon/Walls/wall_back_01.png";
@@ -66,7 +69,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetEntityAsset(Tile tile)
         {
-            if (tile == null) return string.Empty;
+            if (tile == null) return MissingAssetPath;
 
             if (tile.Enemy != null)
                 return GetEnemyAsset(tile.Enemy);
@@ -74,7 +77,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
             if (tile.Npc != null)
                 return GetNpcAsset(tile.Npc);
 
-            return string.Empty;
+            return MissingAssetPath;
         }
 
         /// <summary>
@@ -82,7 +85,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetItemAsset(Tile tile)
         {
-            if (tile?.Item == null) return string.Empty;
+            if (tile?.Item == null) return MissingAssetPath;
 
             if (tile.Item is KeyItem)
                 return "/Assets/Items/key_01.png";
@@ -91,7 +94,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
             {
                 ItemType.Gold => "/Assets/Items/gold_pile_01.png",
                 ItemType.Potion => "/Assets/Items/potion_red_01.png",
-                _ => PlaceholderAssetPath
+                _ => MissingAssetPath
             };
         }
 
@@ -100,7 +103,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetSpecialTileAsset(Tile tile)
         {
-            if (tile == null) return string.Empty;
+            if (tile == null) return MissingAssetPath;
 
             return tile.TileType switch
             {
@@ -117,7 +120,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 TileType.HealingBubble => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
                 TileType.Puzzle => "/Assets/Tiles/StoneDungeon/Special/puzzle_tile_01.png",
                 TileType.KeyPedestal => "/Assets/Tiles/StoneDungeon/Special/key_pedestal_01.png",
-                _ => string.Empty
+                _ => MissingAssetPath
             };
         }
 
@@ -126,7 +129,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetPlayerAsset(Player? player)
         {
-            if (player == null) return string.Empty;
+            if (player == null) return MissingAssetPath;
             return "/Assets/Characters/Player/player_idle_down_00.png";
         }
 
@@ -135,7 +138,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetEnemyAsset(Enemy? enemy)
         {
-            if (enemy == null) return string.Empty;
+            if (enemy == null) return MissingAssetPath;
 
             return enemy.EnemyType switch
             {
@@ -149,7 +152,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 EnemyType.DemonLord => "/Assets/Characters/Boss/boss_idle_down_00.png",
                 EnemyType.Lich => "/Assets/Characters/Boss/boss_idle_down_00.png",
                 EnemyType.Boss => "/Assets/Characters/Boss/boss_idle_down_00.png",
-                _ => PlaceholderAssetPath
+                _ => MissingAssetPath
             };
         }
 
@@ -158,7 +161,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetNpcAsset(Npc? npc)
         {
-            if (npc == null) return string.Empty;
+            if (npc == null) return MissingAssetPath;
             return "/Assets/Characters/Goblin/goblin_idle_down_00.png";
         }
 
@@ -175,7 +178,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 "bones" => "/Assets/Props/bones_01.png",
                 "skull" => "/Assets/Props/skull_01.png",
                 "banner" => "/Assets/Props/banner_skull_01.png",
-                _ => string.Empty
+                _ => MissingAssetPath
             };
         }
 
@@ -191,7 +194,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 "button_hover" => "/Assets/UI/button_hover_01.png",
                 "frame_gold" => "/Assets/UI/frame_gold_01.png",
                 "icon_hp" => "/Assets/UI/icon_hp_01.png",
-                _ => string.Empty
+                _ => MissingAssetPath
             };
         }
 
@@ -206,7 +209,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 "hit_spark" => "/Assets/FX/hit_spark_01.png",
                 "heal" => "/Assets/FX/heal_fx_01.png",
                 "magic_hit" => "/Assets/FX/magic_hit_01.png",
-                _ => string.Empty
+                _ => MissingAssetPath
             };
         }
 
@@ -228,7 +231,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         /// </summary>
         public string GetSafeAssetPath(string? assetPath)
         {
-            return string.IsNullOrWhiteSpace(assetPath) ? PlaceholderAssetPath : assetPath;
+            return string.IsNullOrWhiteSpace(assetPath) ? MissingAssetPath : assetPath;
         }
     }
 }
