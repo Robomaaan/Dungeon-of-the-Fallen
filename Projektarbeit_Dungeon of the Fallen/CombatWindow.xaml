@@ -103,7 +103,7 @@
             <!-- Enemy area: top-right -->
             <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top"
                         Margin="30,16,50,0" Width="240">
-                <TextBlock Text="{Binding EnemyName}"
+                <TextBlock Text="{Binding EnemyName, Mode=OneWay}"
                            FontSize="15" FontWeight="Bold" Foreground="#FF7777"
                            Margin="0,0,0,4"/>
                 <ProgressBar Value="{Binding EnemyHP, Mode=OneWay}" Maximum="{Binding EnemyMaxHP}"
@@ -113,8 +113,11 @@
                     <Run Text="{Binding EnemyHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding EnemyMaxHP, Mode=OneWay}"/>
-                    <Run Text=" HP"/>
+                    <Run Text=" HP · AC "/>
+                    <Run Text="{Binding EnemyArmorClass, Mode=OneWay}"/>
                 </TextBlock>
+                <TextBlock Foreground="#b0b0b0" FontSize="10" TextWrapping="Wrap"
+                           Text="{Binding EnemyWeapon, Mode=OneWay}"/>
             </StackPanel>
 
             <!-- Enemy sprite: top-right, "behind" -->
@@ -126,7 +129,7 @@
             <!-- Player area: bottom-left -->
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom"
                         Margin="50,0,0,16" Width="240">
-                <TextBlock Text="{Binding PlayerName}"
+                <TextBlock Text="{Binding PlayerName, Mode=OneWay}"
                            FontSize="15" FontWeight="Bold" Foreground="#66BBFF"
                            Margin="0,0,0,4"/>
                 <ProgressBar Value="{Binding PlayerHP, Mode=OneWay}" Maximum="{Binding PlayerMaxHP}"
@@ -136,8 +139,11 @@
                     <Run Text="{Binding PlayerHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding PlayerMaxHP, Mode=OneWay}"/>
-                    <Run Text=" HP"/>
+                    <Run Text=" HP · AC "/>
+                    <Run Text="{Binding PlayerArmorClass, Mode=OneWay}"/>
                 </TextBlock>
+                <TextBlock Foreground="#b0b0b0" FontSize="10" TextWrapping="Wrap"
+                           Text="{Binding PlayerWeapon, Mode=OneWay}"/>
             </StackPanel>
 
             <!-- Player sprite: bottom-left, "in front" -->
@@ -214,6 +220,12 @@
                     <Button Content="⚔  ANGREIFEN"
                             Command="{Binding AttackCommand}"
                             Style="{StaticResource CombatButton}"
+                            Margin="0,0,20,0"/>
+                    <Button Content="{Binding SkillButtonText}"
+                            ToolTip="{Binding SkillDescription}"
+                            Command="{Binding UseSkillCommand}"
+                            Style="{StaticResource CombatButton}"
+                            Foreground="#8fe1ff" BorderBrush="#8fe1ff"
                             Margin="0,0,20,0"/>
                     <Button Content="{Binding PotionButtonText}"
                             Command="{Binding UsePotionCommand}"

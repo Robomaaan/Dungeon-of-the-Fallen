@@ -211,6 +211,25 @@ CombatViewModel
 
 ---
 
+## 🧱 Phase-2 Foundation (aktueller Architekturstand)
+
+Der aktuelle Stand wurde intern auf eine erweiterbare Foundation vorbereitet:
+
+- zentralere Combat-Abwicklung über `CombatService`
+- `CombatTurnResult` als Rückgabeobjekt für UI/Animation
+- gemeinsame Stats-Basis über `CombatantStats`
+- `EnemyFactory` für zentrale Gegnererzeugung
+- Save-System auf **Version 2** erweitert
+- `SaveDataMapper` kapselt Save/Load-Mapping aus dem ViewModel
+
+Geplante nächste Ausbaustufen:
+- `PlayerProgressionService`
+- `LootService`
+- `EnemySpawnService`
+- Save-Migrationen
+
+Siehe auch: `docs/phase-2-foundation-plan.md`
+
 ## 📝 Bekannte Einschränkungen (MVP)
 
 - **Prozeduraler Generator**: Noch nicht implementiert → Hardcoded Test-Map

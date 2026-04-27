@@ -3,10 +3,27 @@ namespace DungeonOfTheFallen.Core.Models
     public enum TileType
     {
         Floor,
+        AshFloor,
+        SandFloor,
+        CloudFloor,
+        CursedFloor,
         Wall,
         Exit,
         Spawn,
         Trap,
-        HealingRoom
+        ThornTrap,
+        CurseTrap,
+        LavaTrap,
+        SpikeTrap,
+        DivineTrap,
+        HealingRoom,
+        HealingShrine,
+        HealingAltar,
+        HotSpring,
+        HealingBubble,
+        LightCircle,
+        LockedDoor,
+        Puzzle,
+        KeyPedestal
     }
 }
