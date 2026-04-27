@@ -3,6 +3,7 @@ using System.Windows.Input;
 using DungeonOfTheFallen.Core.Models;
 using DungeonOfTheFallen.Core.Persistence;
 using DungeonOfTheFallen.Core.Services;
+using Projektarbeit_Dungeon_of_the_Fallen.Services;
 
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
@@ -18,6 +19,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private TurnManager _turnManager;
         private readonly XmlGameRepository _repository = new();
+        private readonly AssetRegistry _assetRegistry = new();
         private string _combatLog = string.Empty;
         private string _biomeDisplayName = string.Empty;
         private bool _isGameOver;
@@ -34,6 +36,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public GameState GameState { get; private set; }
         public PlayerViewModel PlayerViewModel { get; private set; }
         public ObservableCollection<TileViewModel> Tiles { get; } = new();
+        public ObservableCollection<RenderObjectViewModel> RenderObjects { get; } = new();
         public BiomeType CurrentBiome { get; private set; }
         public int CurrentFloor => GameState.CurrentFloor;
         public string FloorDisplay => $"Floor {GameState.CurrentFloor}/{GameState.FinalFloor}";
@@ -289,6 +292,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             foreach (var tileVm in Tiles)
                 tileVm.UpdateDisplay();
             PlayerViewModel.UpdateStatus();
+            RebuildRenderObjects();
             OnPropertyChanged(nameof(CurrentFloor), nameof(FloorDisplay), nameof(ObjectiveText), nameof(ExitStatusText), nameof(RunStatusText), nameof(DungeonSystemsText));
         }
 
@@ -608,6 +612,170 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private static void SetTile(DungeonMap map, int x, int y, TileType tileType)
         {
             map.SetTile(x, y, new Tile(x, y, tileType));
+        }
+
+        /// <summary>
+        /// Rebuilds the RenderObjects collection for 2.5D sprite-based rendering.
+        /// Called after game state changes to update the visual representation.
+        /// Uses pseudo-isometric projection with simplified Z-ordering.
+        /// </summary>
+        private void RebuildRenderObjects()
+        {
+            // Rendering constants for 2.5D pseudo-isometric projection
+            const double TileWidth = 64;
+            const double TileHeight = 48;
+            const double TileStepX = 64;
+            const double TileStepY = 36;
+            const double MapOffsetX = 80;
+            const double MapOffsetY = 40;
+            const double CharacterWidth = 64;
+            const double CharacterHeight = 96;
+            const double WallHeight = 96;
+
+            RenderObjects.Clear();
+            var map = GameState.Map;
+
+            // Iterate through all tiles from back to front (top-left to bottom-right)
+            for (var y = 0; y < map.Height; y++)
+            {
+                for (var x = 0; x < map.Width; x++)
+                {
+                    var tile = map.GetTile(x, y);
+                    if (tile == null) continue;
+
+                    // Calculate screen coordinates using pseudo-isometric projection
+                    var screenX = MapOffsetX + (x * TileStepX);
+                    var screenY = MapOffsetY + (y * TileStepY);
+                    var baseZIndex = y * 100;
+
+                    // 1. Floor tiles (base layer)
+                    var floorAsset = _assetRegistry.GetFloorAsset(tile);
+                    if (!string.IsNullOrEmpty(floorAsset))
+                    {
+                        var floorObj = new RenderObjectViewModel(
+                            floorAsset,
+                            screenX,
+                            screenY,
+                            TileWidth,
+                            TileHeight,
+                            baseZIndex,
+                            $"Floor_{x}_{y}",
+                            "floor");
+                        RenderObjects.Add(floorObj);
+                    }
+
+                    // 2. Walls (if present)
+                    if (tile.TileType == TileType.Wall)
+                    {
+                        var wallAsset = _assetRegistry.GetWallAsset(tile, map);
+                        if (!string.IsNullOrEmpty(wallAsset))
+                        {
+                            var wallObj = new RenderObjectViewModel(
+                                wallAsset,
+                                screenX,
+                                screenY - 48,
+                                TileWidth,
+                                WallHeight,
+                                baseZIndex + 40,
+                                $"Wall_{x}_{y}",
+                                "wall");
+                            RenderObjects.Add(wallObj);
+                        }
+                    }
+
+                    // 3. Special tiles (doors, traps, puzzles, exits)
+                    var specialAsset = _assetRegistry.GetSpecialTileAsset(tile);
+                    if (!string.IsNullOrEmpty(specialAsset) && tile.TileType != TileType.Wall)
+                    {
+                        var specialObj = new RenderObjectViewModel(
+                            specialAsset,
+                            screenX,
+                            screenY,
+                            TileWidth,
+                            TileHeight,
+                            baseZIndex + 10,
+                            $"Special_{tile.TileType}_{x}_{y}",
+                            "special");
+                        RenderObjects.Add(specialObj);
+                    }
+
+                    // 4. Items (on top of floor, below entities)
+                    if (tile.Item != null)
+                    {
+                        var itemAsset = _assetRegistry.GetItemAsset(tile);
+                        if (!string.IsNullOrEmpty(itemAsset))
+                        {
+                            var itemObj = new RenderObjectViewModel(
+                                itemAsset,
+                                screenX + 24,
+                                screenY + 12,
+                                32,
+                                32,
+                                baseZIndex + 20,
+                                $"Item_{tile.Item.Name}_{x}_{y}",
+                                "item");
+                            RenderObjects.Add(itemObj);
+                        }
+                    }
+
+                    // 5. Enemies (sprites with height offset for perspective)
+                    if (tile.Enemy != null && tile.Enemy.IsAlive)
+                    {
+                        var enemyAsset = _assetRegistry.GetEnemyAsset(tile.Enemy);
+                        if (!string.IsNullOrEmpty(enemyAsset))
+                        {
+                            var enemyObj = new RenderObjectViewModel(
+                                enemyAsset,
+                                screenX,
+                                screenY - 36,
+                                CharacterWidth,
+                                CharacterHeight,
+                                baseZIndex + 50,
+                                $"Enemy_{tile.Enemy.Name}_{x}_{y}",
+                                "entity");
+                            RenderObjects.Add(enemyObj);
+                        }
+                    }
+
+                    // 6. NPCs (if present)
+                    if (tile.Npc != null)
+                    {
+                        var npcAsset = _assetRegistry.GetNpcAsset(tile.Npc);
+                        if (!string.IsNullOrEmpty(npcAsset))
+                        {
+                            var npcObj = new RenderObjectViewModel(
+                                npcAsset,
+                                screenX,
+                                screenY - 36,
+                                CharacterWidth,
+                                CharacterHeight,
+                                baseZIndex + 50,
+                                $"NPC_{tile.Npc.Name}_{x}_{y}",
+                                "entity");
+                            RenderObjects.Add(npcObj);
+                        }
+                    }
+
+                    // 7. Player (if on this tile)
+                    if (tile.HasPlayer)
+                    {
+                        var playerAsset = _assetRegistry.GetPlayerAsset(GameState.Player);
+                        if (!string.IsNullOrEmpty(playerAsset))
+                        {
+                            var playerObj = new RenderObjectViewModel(
+                                playerAsset,
+                                screenX,
+                                screenY - 36,
+                                CharacterWidth,
+                                CharacterHeight,
+                                baseZIndex + 50,
+                                $"Player_{x}_{y}",
+                                "player");
+                            RenderObjects.Add(playerObj);
+                        }
+                    }
+                }
+            }
         }
     }
 }

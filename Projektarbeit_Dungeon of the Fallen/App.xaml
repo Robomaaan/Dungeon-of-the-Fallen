@@ -5,5 +5,6 @@
     <Application.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVis" />
         <local:VictoryTextConverter x:Key="VictoryText" />
+        <local:FallbackImageConverter x:Key="FallbackImage" />
     </Application.Resources>
 </Application>

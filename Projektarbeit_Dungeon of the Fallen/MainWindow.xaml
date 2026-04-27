@@ -34,22 +34,34 @@
                    FontSize="24" FontWeight="Bold" Margin="20,12"
                    Foreground="#FFD700" HorizontalAlignment="Center" />
 
-        <!-- Dungeon Grid -->
+        <!-- Dungeon Grid - 2.5D Sprite Canvas -->
         <Border Grid.Column="0" Grid.Row="1" Margin="10" Background="#111111"
                 BorderThickness="2" BorderBrush="#555">
-            <ItemsControl ItemsSource="{Binding Tiles}">
+            <ItemsControl ItemsSource="{Binding RenderObjects}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="{Binding DungeonWidth}" Rows="{Binding DungeonHeight}" />
+                        <Canvas Width="1500" Height="1000" ClipToBounds="False" Background="#0a0a0a" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}" />
+                        <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border BorderThickness="0.5" BorderBrush="#222" Background="{Binding BackgroundColor}">
-                            <TextBlock Text="{Binding DisplayText}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       FontSize="14" FontWeight="Bold" Foreground="#ffffff" />
-                        </Border>
+                        <Image Source="{Binding AssetPath, Converter={StaticResource FallbackImage}}"
+                               Width="{Binding Width}"
+                               Height="{Binding Height}"
+                               Opacity="{Binding Opacity}"
+                               Stretch="Fill"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                               SnapsToDevicePixels="True"
+                               ToolTip="{Binding DebugName}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

@@ -14,4 +14,16 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Assets\**\*.png" />
+    <None Remove="Assets\**\*.jpg" />
+    <None Remove="Assets\**\*.jpeg" />
+    <None Remove="Assets\**\*.webp" />
+
+    <Resource Include="Assets\**\*.png" />
+    <Resource Include="Assets\**\*.jpg" />
+    <Resource Include="Assets\**\*.jpeg" />
+    <Resource Include="Assets\**\*.webp" />
+  </ItemGroup>
+
 </Project>
