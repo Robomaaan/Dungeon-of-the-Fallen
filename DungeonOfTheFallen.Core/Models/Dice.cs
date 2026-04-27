@@ -12,19 +12,21 @@ namespace DungeonOfTheFallen.Core.Models
             return _random.Next(1, sides + 1);
         }
 
+        public static int Roll(DieSize dieSize) => Roll((int)dieSize);
+
         public static int Roll(int count, int sides)
         {
             if (count <= 0)
                 throw new ArgumentOutOfRangeException(nameof(count), "Dice count must be greater than zero.");
 
-            int total = 0;
-            for (int i = 0; i < count; i++)
-            {
+            var total = 0;
+            for (var i = 0; i < count; i++)
                 total += Roll(sides);
-            }
 
             return total;
         }
+
+        public static int Roll(int count, DieSize dieSize) => Roll(count, (int)dieSize);
 
         public static int RollD4() => Roll(4);
         public static int RollD6() => Roll(6);

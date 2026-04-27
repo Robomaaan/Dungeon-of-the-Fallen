@@ -60,10 +60,46 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             switch (type)
             {
                 case EnemyType.Goblin: BuildGoblin(); break;
+                case EnemyType.Spider: BuildSpider(); break;
+                case EnemyType.Skeleton: BuildSkeleton(); break;
                 case EnemyType.Orc:    BuildOrc();    break;
+                case EnemyType.Zombie: BuildZombie(); break;
+                case EnemyType.Troll: BuildTroll(); break;
+                case EnemyType.Dragon:
+                case EnemyType.DemonLord:
+                case EnemyType.Lich:
                 case EnemyType.Boss:   BuildDragon(); break;
                 default:               BuildGoblin(); break;
             }
+        }
+
+        private void BuildSpider()
+        {
+            var c = EnemySpriteCanvas;
+            c.Children.Add(MakeEllipse(20, 40, 56, 42, "#1A1A1A"));
+            c.Children.Add(MakeEllipse(32, 20, 34, 28, "#222244"));
+            c.Children.Add(MakeEllipse(38, 28, 6, 6, "#FF3333"));
+            c.Children.Add(MakeEllipse(54, 28, 6, 6, "#FF3333"));
+            c.Children.Add(MakePath("M20,50 L0,30", "#444466", 1.0, true, 4));
+            c.Children.Add(MakePath("M24,58 L0,58", "#444466", 1.0, true, 4));
+            c.Children.Add(MakePath("M26,68 L4,86", "#444466", 1.0, true, 4));
+            c.Children.Add(MakePath("M76,50 L96,30", "#444466", 1.0, true, 4));
+            c.Children.Add(MakePath("M72,58 L96,58", "#444466", 1.0, true, 4));
+            c.Children.Add(MakePath("M70,68 L92,86", "#444466", 1.0, true, 4));
+        }
+
+        private void BuildSkeleton()
+        {
+            var c = EnemySpriteCanvas;
+            c.Children.Add(MakeEllipse(26, 6, 44, 36, "#D9D9D9"));
+            c.Children.Add(MakeEllipse(38, 18, 6, 6, "#111111"));
+            c.Children.Add(MakeEllipse(52, 18, 6, 6, "#111111"));
+            c.Children.Add(Rect(42, 40, 10, 52, "#CCCCCC", rx: 3));
+            c.Children.Add(Rect(26, 56, 42, 10, "#CCCCCC", rx: 3));
+            c.Children.Add(Rect(16, 52, 10, 38, "#CCCCCC", rx: 3));
+            c.Children.Add(Rect(68, 52, 10, 38, "#CCCCCC", rx: 3));
+            c.Children.Add(Rect(30, 92, 10, 40, "#CCCCCC", rx: 3));
+            c.Children.Add(Rect(54, 92, 10, 40, "#CCCCCC", rx: 3));
         }
 
         private void BuildGoblin()
@@ -110,6 +146,34 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             c.Children.Add(MakePath("M100,20 L128,16 L128,52 L100,44 Z", "#888888", 1.0));
             c.Children.Add(Rect(14, 124, 36, 36, "#4a3a0a", rx: 4));
             c.Children.Add(Rect(58, 124, 36, 36, "#4a3a0a", rx: 4));
+        }
+
+        private void BuildZombie()
+        {
+            var c = EnemySpriteCanvas;
+            c.Children.Add(MakeEllipse(22, 6, 52, 42, "#6F8A5A"));
+            c.Children.Add(MakeEllipse(34, 20, 8, 8, "#FFDD88"));
+            c.Children.Add(MakeEllipse(54, 20, 8, 8, "#FFDD88"));
+            c.Children.Add(Rect(18, 48, 60, 60, "#4A5F3A", rx: 6));
+            c.Children.Add(Rect(6, 54, 16, 44, "#6F8A5A", rx: 4));
+            c.Children.Add(Rect(74, 54, 16, 44, "#6F8A5A", rx: 4));
+            c.Children.Add(Rect(24, 108, 18, 42, "#3B4A30", rx: 4));
+            c.Children.Add(Rect(54, 108, 18, 42, "#3B4A30", rx: 4));
+        }
+
+        private void BuildTroll()
+        {
+            var c = EnemySpriteCanvas;
+            c.Children.Add(MakeEllipse(18, 0, 60, 48, "#5C7A46"));
+            c.Children.Add(MakeEllipse(28, 16, 10, 10, "#FF6600"));
+            c.Children.Add(MakeEllipse(56, 16, 10, 10, "#FF6600"));
+            c.Children.Add(Rect(10, 46, 76, 76, "#476235", rx: 8));
+            c.Children.Add(Rect(0, 54, 18, 52, "#5C7A46", rx: 4));
+            c.Children.Add(Rect(78, 54, 18, 52, "#5C7A46", rx: 4));
+            c.Children.Add(Rect(24, 120, 20, 42, "#324824", rx: 4));
+            c.Children.Add(Rect(54, 120, 20, 42, "#324824", rx: 4));
+            c.Children.Add(Rect(86, 20, 10, 62, "#7A4A1A", rx: 3));
+            c.Children.Add(MakeEllipse(80, 10, 24, 24, "#8A5A2A"));
         }
 
         private void BuildDragon()

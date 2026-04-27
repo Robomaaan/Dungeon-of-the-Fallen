@@ -88,7 +88,7 @@
                 <Rectangle Height="640" MouseLeftButtonDown="Window_MouseLeftButtonDown"
                            Fill="Transparent"/>
 
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="520">
 
                     <!-- Decorative top line -->
                     <TextBlock Text="─── ⚔ ───"
@@ -127,6 +127,21 @@
                             Style="{StaticResource MenuButton}"
                             Click="NewGame_Click"
                             Margin="0,0,0,14"/>
+
+                    <TextBlock Text="KLASSE"
+                               FontSize="12" FontWeight="Bold" Foreground="#6f86a0"
+                               HorizontalAlignment="Center" Margin="0,4,0,8"
+                               FontFamily="Consolas"/>
+
+                    <ComboBox x:Name="ClassSelectionComboBox"
+                              Width="320" Height="34"
+                              Margin="0,0,0,18"
+                              Background="#0e1820"
+                              Foreground="#FFD700"
+                              BorderBrush="#FFD700"
+                              HorizontalContentAlignment="Center"
+                              FontFamily="Consolas"
+                              FontSize="14"/>
 
                     <Button x:Name="LoadGameButton" Content="📂   LADEN"
                             Style="{StaticResource MenuButton}"

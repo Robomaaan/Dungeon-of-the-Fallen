@@ -15,7 +15,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
     public class CombatViewModel : ViewModelBase
     {
-        private const int MaxCombatLogLines = 7;
+        private const int MaxCombatLogLines = 8;
 
         private readonly GameState _gameState;
         private readonly Enemy _enemy;
@@ -26,14 +26,22 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private int _enemyDiceValue;
         private string _combatLog = string.Empty;
         private string _statusMessage = string.Empty;
+        private CombatActionType _pendingAction = CombatActionType.Attack;
 
         public string PlayerName => _gameState.Player.Name;
         public int PlayerHP => _gameState.Player.HP;
         public int PlayerMaxHP => _gameState.Player.MaxHP;
+        public int PlayerArmorClass => _gameState.Player.ArmorClass;
+        public string PlayerWeapon => _gameState.Player.Weapon.Summary;
+        public string SkillName => _gameState.Player.ClassSkill.Name;
+        public string SkillDescription => _gameState.Player.ClassSkill.Description;
+        public string SkillButtonText => $"✨ {SkillName}";
 
         public string EnemyName => _enemy.Name;
         public int EnemyHP => _enemy.HP;
         public int EnemyMaxHP => _enemy.MaxHP;
+        public int EnemyArmorClass => _enemy.ArmorClass;
+        public string EnemyWeapon => _enemy.Weapon.Summary;
         public EnemyType EnemyType => _enemy.EnemyType;
 
         public CombatPhase Phase
@@ -43,7 +51,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             {
                 _phase = value;
                 OnPropertyChanged(nameof(Phase), nameof(IsPlayerTurn), nameof(IsGameOver), nameof(IsVictory));
-                System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+                CommandManager.InvalidateRequerySuggested();
             }
         }
 
@@ -51,29 +59,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public bool IsGameOver => _phase == CombatPhase.Victory || _phase == CombatPhase.Defeat;
         public bool IsVictory => _phase == CombatPhase.Victory;
 
-        public int PlayerDiceValue
-        {
-            get => _playerDiceValue;
-            private set => SetProperty(ref _playerDiceValue, value);
-        }
-
-        public int EnemyDiceValue
-        {
-            get => _enemyDiceValue;
-            private set => SetProperty(ref _enemyDiceValue, value);
-        }
-
-        public string CombatLog
-        {
-            get => _combatLog;
-            private set => SetProperty(ref _combatLog, value);
-        }
-
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            private set => SetProperty(ref _statusMessage, value);
-        }
+        public int PlayerDiceValue { get => _playerDiceValue; private set => SetProperty(ref _playerDiceValue, value); }
+        public int EnemyDiceValue { get => _enemyDiceValue; private set => SetProperty(ref _enemyDiceValue, value); }
+        public string CombatLog { get => _combatLog; private set => SetProperty(ref _combatLog, value); }
+        public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
 
         public bool HasPotions => _gameState.Player.Inventory.Items.Any(i => i.ItemType == ItemType.Potion);
         public int PotionCount => _gameState.Player.Inventory.Items.Count(i => i.ItemType == ItemType.Potion);
@@ -81,8 +70,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         public ICommand AttackCommand { get; }
         public ICommand UsePotionCommand { get; }
+        public ICommand UseSkillCommand { get; }
 
-        // View subscribes: (diceValue, isPlayerRoll)
         public event Action<int, bool>? DiceRollStarted;
 
         public CombatViewModel(GameState gameState, Enemy enemy)
@@ -91,21 +80,21 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             _enemy = enemy;
             _combatService = new CombatService(gameState);
 
-            AttackCommand = new RelayCommand(_ => StartPlayerAttack(), _ => IsPlayerTurn);
+            AttackCommand = new RelayCommand(_ => StartPlayerAttack(CombatActionType.Attack), _ => IsPlayerTurn);
             UsePotionCommand = new RelayCommand(_ => StartPotionTurn(), _ => IsPlayerTurn && HasPotions);
+            UseSkillCommand = new RelayCommand(_ => StartPlayerAttack(CombatActionType.UseSkill), _ => IsPlayerTurn);
 
-            StatusMessage = $"Ein {_enemy.Name} greift an!";
-            AddLog($"Kampf gegen {_enemy.Name}! (HP {_enemy.HP}/{_enemy.MaxHP})");
+            StatusMessage = $"Ein {_enemy.Name} blockiert den Weg! AC {_enemy.ArmorClass} · {_enemy.Weapon.Damage.Describe()}";
+            AddLog($"Kampf gegen {_enemy.Name}! AC {_enemy.ArmorClass} | {_enemy.Weapon.Summary}");
         }
 
-        // === Player actions ===
-
-        private void StartPlayerAttack()
+        private void StartPlayerAttack(CombatActionType actionType)
         {
             if (!IsPlayerTurn) return;
+            _pendingAction = actionType;
             Phase = CombatPhase.PlayerRolling;
-            StatusMessage = "Du würfelst...";
-            int roll = _combatService.RollDice();
+            StatusMessage = actionType == CombatActionType.UseSkill ? $"{SkillName} wird vorbereitet..." : "Du würfelst 1d20 auf Treffer...";
+            var roll = _combatService.RollDice();
             PlayerDiceValue = roll;
             DiceRollStarted?.Invoke(roll, true);
         }
@@ -122,17 +111,13 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
             EnemyDiceValue = result.EnemyRoll;
             Phase = CombatPhase.EnemyRolling;
-            StatusMessage = $"{_enemy.Name} würfelt...";
+            StatusMessage = $"{_enemy.Name} würfelt auf Gegenangriff...";
             DiceRollStarted?.Invoke(result.EnemyRoll, false);
         }
 
-        // === Called by CombatWindow after animation completes ===
-
         public void OnPlayerDiceAnimationComplete()
         {
-            var result = _combatService.ExecuteCombat(_enemy, CombatActionType.Attack, PlayerDiceValue);
-
-            AddLog($"Du würfelst {PlayerDiceValue} → {result.PlayerDamageDealt} Schaden an {_enemy.Name}! (HP {Math.Max(0, _enemy.HP)}/{_enemy.MaxHP})");
+            var result = _combatService.ExecuteCombat(_enemy, _pendingAction, PlayerDiceValue);
             ApplyCombatResult(result);
 
             if (result.PlayerDefeated || result.EnemyDefeated)
@@ -156,20 +141,42 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             }
 
             Phase = CombatPhase.PlayerTurn;
-            StatusMessage = "Dein Zug!";
+            StatusMessage = $"Dein Zug! Würfle gegen AC {_enemy.ArmorClass}.";
             NotifyStats();
         }
 
         private void ApplyCombatResult(CombatTurnResult result)
         {
             if (result.PlayerUsedPotion)
-            {
                 AddLog($"Du benutzt {result.UsedPotionName}: +{result.HealingDone} HP!");
+
+            if (result.PlayerUsedSkill)
+            {
+                AddLog($"Skill {result.UsedSkillName} ausgelöst!");
+                if (result.HealingDone > 0)
+                    AddLog($"Die Klassenfähigkeit heilt dich um {result.HealingDone} HP.");
+                if (result.DefenseBoostGranted > 0)
+                    AddLog($"AC-Bonus aktiv: +{result.DefenseBoostGranted} für den Gegenschlag.");
             }
 
-            if (result.EnemyDamageDealt > 0)
+            if (result.PlayerRoll > 0)
             {
-                AddLog($"{_enemy.Name} würfelt {result.EnemyRoll} → {result.EnemyDamageDealt} Schaden an dir! (HP {Math.Max(0, _gameState.Player.HP)}/{_gameState.Player.MaxHP})");
+                var attackText = result.PlayerAttackHit
+                    ? $"Du würfelst {result.PlayerRoll} → Treffer ({result.PlayerTotalAttackRoll} vs AC {_enemy.ArmorClass}) für {result.PlayerDamageDealt} Schaden."
+                    : $"Du würfelst {result.PlayerRoll} → verfehlt ({result.PlayerTotalAttackRoll} vs AC {_enemy.ArmorClass}).";
+                if (result.PlayerCritHit) attackText += " KRIT!";
+                if (result.PlayerCritMiss) attackText += " Patzer!";
+                AddLog(attackText);
+            }
+
+            if (result.EnemyRoll > 0)
+            {
+                var enemyText = result.EnemyAttackHit
+                    ? $"{_enemy.Name} würfelt {result.EnemyRoll} → Treffer ({result.EnemyTotalAttackRoll} vs AC {PlayerArmorClass}) für {result.EnemyDamageDealt} Schaden."
+                    : $"{_enemy.Name} würfelt {result.EnemyRoll} → verfehlt ({result.EnemyTotalAttackRoll} vs AC {PlayerArmorClass}).";
+                if (result.EnemyCritHit) enemyText += " KRIT!";
+                if (result.EnemyCritMiss) enemyText += " Patzer!";
+                AddLog(enemyText);
             }
 
             if (result.EnemyDefeated)
@@ -201,7 +208,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void NotifyStats()
         {
-            OnPropertyChanged(nameof(PlayerHP), nameof(EnemyHP), nameof(HasPotions), nameof(PotionCount), nameof(PotionButtonText));
+            OnPropertyChanged(nameof(PlayerHP), nameof(EnemyHP), nameof(HasPotions), nameof(PotionCount), nameof(PotionButtonText), nameof(SkillName), nameof(SkillDescription), nameof(SkillButtonText), nameof(PlayerArmorClass), nameof(EnemyArmorClass), nameof(PlayerWeapon), nameof(EnemyWeapon));
         }
     }
 }

@@ -12,7 +12,7 @@ namespace DungeonOfTheFallen.Core.Models
             set
             {
                 _tileType = value;
-                IsWalkable = value != TileType.Wall;
+                IsWalkable = value != TileType.Wall && value != TileType.LockedDoor;
             }
         }
 
@@ -21,6 +21,10 @@ namespace DungeonOfTheFallen.Core.Models
         public bool HasPlayer { get; set; }
         public Enemy? Enemy { get; set; }
         public Item? Item { get; set; }
+        public Npc? Npc { get; set; }
+        public string? DoorKeyId { get; set; }
+        public string? PuzzleId { get; set; }
+        public string? HintText { get; set; }
 
         public Tile(int x, int y, TileType tileType = TileType.Floor)
         {

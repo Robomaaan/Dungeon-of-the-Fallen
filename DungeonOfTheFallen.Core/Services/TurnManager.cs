@@ -5,27 +5,32 @@ namespace DungeonOfTheFallen.Core.Services
     public class TurnManager
     {
         private readonly GameState _gameState;
-        private readonly Random _random = new Random();
+        private readonly Random _random = new();
 
-        public TurnManager(GameState gameState)
-        {
-            _gameState = gameState;
-        }
+        public TurnManager(GameState gameState) => _gameState = gameState;
 
-        /// <summary>
-        /// Bewegt den Spieler. Kein Kampf hier — Kampf wird in der UI gehandhabt.
-        /// </summary>
         public bool MovePlayer(int newX, int newY)
         {
             if (newX < 0 || newX >= _gameState.Map.Width || newY < 0 || newY >= _gameState.Map.Height)
                 return false;
 
             var targetTile = _gameState.Map.GetTile(newX, newY);
-            if (targetTile == null || !targetTile.IsWalkable)
+            if (targetTile == null)
                 return false;
 
-            // Feind auf Ziel-Tile blockiert Bewegung (Kampf läuft über UI)
-            if (targetTile.Enemy != null && targetTile.Enemy.IsAlive)
+            if (targetTile.TileType == TileType.LockedDoor)
+            {
+                if (string.IsNullOrWhiteSpace(targetTile.DoorKeyId) || !_gameState.HasKey(targetTile.DoorKeyId))
+                {
+                    _gameState.AddCombatLogEntry($"[DOOR] Verschlossen. {targetTile.HintText ?? "Finde den passenden Schlüssel."}");
+                    return false;
+                }
+
+                targetTile.TileType = TileType.Floor;
+                _gameState.AddCombatLogEntry($"[DOOR] Du öffnest die Tür mit dem Schlüssel '{targetTile.DoorKeyId}'.");
+            }
+
+            if (!targetTile.IsWalkable || (targetTile.Enemy != null && targetTile.Enemy.IsAlive))
                 return false;
 
             var oldTile = _gameState.Map.GetTile(_gameState.Player.PositionX, _gameState.Player.PositionY);
@@ -37,6 +42,8 @@ namespace DungeonOfTheFallen.Core.Services
 
             PickUpItem(targetTile);
             ApplyTileEffect(targetTile);
+            ApplyNpcInteraction(targetTile);
+            ApplyPuzzle(targetTile);
 
             if (_gameState.Player.IsAlive)
                 ExecuteEnemyTurns();
@@ -55,54 +62,41 @@ namespace DungeonOfTheFallen.Core.Services
 
         private void MoveEnemy(Enemy enemy)
         {
-            int playerX = _gameState.Player.PositionX;
-            int playerY = _gameState.Player.PositionY;
-            int dist = Math.Abs(enemy.PositionX - playerX) + Math.Abs(enemy.PositionY - playerY);
+            var playerX = _gameState.Player.PositionX;
+            var playerY = _gameState.Player.PositionY;
+            var dist = Math.Abs(enemy.PositionX - playerX) + Math.Abs(enemy.PositionY - playerY);
 
-            // Direkt benachbart: Bump-Angriff (ohne Würfel)
             if (dist <= 1)
             {
-                int dmg = Math.Max(1, enemy.Attack - _gameState.Player.Defense / 2 + _random.Next(-1, 2));
-                _gameState.Player.HP -= dmg;
-                _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} schlägt dich für {dmg} Schaden!");
-                return;
-            }
-
-            int dx = 0, dy = 0;
-
-            if (dist <= 9)
-            {
-                // Spieler jagen
-                int diffX = playerX - enemy.PositionX;
-                int diffY = playerY - enemy.PositionY;
-
-                if (Math.Abs(diffX) >= Math.Abs(diffY))
-                    dx = Math.Sign(diffX);
-                else
-                    dy = Math.Sign(diffY);
-
-                var preferred = _gameState.Map.GetTile(enemy.PositionX + dx, enemy.PositionY + dy);
-                if (preferred == null || !preferred.IsWalkable || preferred.Enemy != null)
+                var roll = Dice.RollD20();
+                if (roll == 1)
                 {
-                    dx = Math.Abs(diffX) >= Math.Abs(diffY) ? 0 : Math.Sign(diffX);
-                    dy = Math.Abs(diffX) >= Math.Abs(diffY) ? Math.Sign(diffY) : 0;
+                    _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} stolpert beim Gelegenheitsangriff.");
+                    return;
                 }
-            }
-            else
-            {
-                if (_random.Next(4) != 0) return;
-                var dirs = new[] { (0, 1), (0, -1), (1, 0), (-1, 0) };
-                (dx, dy) = dirs[_random.Next(dirs.Length)];
+
+                var hit = roll == 20 || roll + enemy.Attack + enemy.Weapon.AttackBonus >= _gameState.Player.ArmorClass;
+                if (!hit)
+                {
+                    _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} verfehlt dich im Gedränge.");
+                    return;
+                }
+
+                var damage = enemy.Weapon.Damage.Roll(roll == 20);
+                damage = _gameState.Player.DamageModifiers.Apply(enemy.Weapon.Damage.DamageType, damage);
+                _gameState.Player.HP -= damage;
+                _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} trifft dich für {damage} Schaden!");
+                return;
             }
 
-            int newX = enemy.PositionX + dx;
-            int newY = enemy.PositionY + dy;
-
-            if (newX < 0 || newX >= _gameState.Map.Width || newY < 0 || newY >= _gameState.Map.Height)
+            var (dx, dy) = GetMovementStep(enemy, playerX, playerY, dist);
+            if (dx == 0 && dy == 0)
                 return;
 
+            var newX = enemy.PositionX + dx;
+            var newY = enemy.PositionY + dy;
             var tile = _gameState.Map.GetTile(newX, newY);
-            if (tile == null || !tile.IsWalkable || tile.Enemy != null || tile.HasPlayer)
+            if (tile == null || !tile.IsWalkable || tile.Enemy != null || tile.HasPlayer || tile.TileType == TileType.LockedDoor)
                 return;
 
             var oldTile = _gameState.Map.GetTile(enemy.PositionX, enemy.PositionY);
@@ -113,22 +107,69 @@ namespace DungeonOfTheFallen.Core.Services
             tile.Enemy = enemy;
         }
 
+        private (int dx, int dy) GetMovementStep(Enemy enemy, int playerX, int playerY, int dist)
+        {
+            if (dist > 9)
+            {
+                if (_random.Next(4) != 0) return (0, 0);
+                var dirs = new[] { (0, 1), (0, -1), (1, 0), (-1, 0) };
+                return dirs[_random.Next(dirs.Length)];
+            }
+
+            var diffX = playerX - enemy.PositionX;
+            var diffY = playerY - enemy.PositionY;
+            if (enemy.Role == EnemyRole.Scout)
+                return Math.Abs(diffY) >= Math.Abs(diffX) ? (0, Math.Sign(diffY)) : (Math.Sign(diffX), 0);
+
+            return Math.Abs(diffX) >= Math.Abs(diffY) ? (Math.Sign(diffX), 0) : (0, Math.Sign(diffY));
+        }
+
         private void PickUpItem(Tile tile)
         {
             if (tile.Item == null) return;
             var item = tile.Item;
             tile.Item = null;
 
-            if (item is Potion potion)
+            switch (item)
             {
-                _gameState.Player.Inventory.Add(potion);
-                _gameState.AddCombatLogEntry($"[ITEM] {potion.Name} aufgehoben (+{potion.HealingAmount} HP Heilung)");
+                case Potion potion:
+                    _gameState.Player.Inventory.Add(potion);
+                    _gameState.AddCombatLogEntry($"[ITEM] {potion.Name} aufgehoben (+{potion.HealingAmount} HP Heilung)");
+                    break;
+                case KeyItem key:
+                    _gameState.Player.Inventory.Add(key);
+                    _gameState.AddKey(key.KeyId);
+                    _gameState.AddCombatLogEntry($"[KEY] {key.Name} gefunden. Passt zu '{key.KeyId}'.");
+                    break;
+                default:
+                    if (item.ItemType == ItemType.Gold)
+                    {
+                        _gameState.Player.Gold += 20;
+                        _gameState.AddCombatLogEntry("[LOOT] 20 Gold gefunden!");
+                    }
+                    break;
             }
-            else if (item.ItemType == ItemType.Gold)
-            {
-                _gameState.Player.Gold += 20;
-                _gameState.AddCombatLogEntry("[LOOT] 20 Gold gefunden!");
-            }
+        }
+
+        private void ApplyNpcInteraction(Tile tile)
+        {
+            if (tile.Npc != null)
+                NpcInteractionService.Interact(_gameState, tile.Npc);
+        }
+
+        private void ApplyPuzzle(Tile tile)
+        {
+            if (tile.TileType != TileType.Puzzle || string.IsNullOrWhiteSpace(tile.PuzzleId))
+                return;
+
+            var puzzle = _gameState.Puzzles.FirstOrDefault(p => p.PuzzleId == tile.PuzzleId);
+            if (puzzle == null || puzzle.Solved)
+                return;
+
+            puzzle.Solved = true;
+            _gameState.Player.Gold += 30 + (_gameState.CurrentFloor * 10);
+            _gameState.AddCombatLogEntry($"[PUZZLE] {puzzle.Title}: {puzzle.Riddle}");
+            _gameState.AddCombatLogEntry($"[PUZZLE] Lösungseintrag gefunden. {puzzle.RewardText}");
         }
 
         private void ApplyTileEffect(Tile tile)
@@ -136,17 +177,30 @@ namespace DungeonOfTheFallen.Core.Services
             switch (tile.TileType)
             {
                 case TileType.HealingRoom:
-                    int heal = Math.Min(20, _gameState.Player.MaxHP - _gameState.Player.HP);
+                case TileType.HealingShrine:
+                case TileType.HealingAltar:
+                case TileType.HotSpring:
+                case TileType.HealingBubble:
+                case TileType.LightCircle:
+                    var heal = Math.Min(18, _gameState.Player.MaxHP - _gameState.Player.HP);
                     if (heal > 0)
                     {
                         _gameState.Player.HP += heal;
-                        _gameState.AddCombatLogEntry($"[HEILUNG] Der Heilungsraum stellt {heal} HP wieder her!");
+                        _gameState.AddCombatLogEntry($"[HEILUNG] Der Ruhepunkt stellt {heal} HP wieder her!");
                     }
                     break;
                 case TileType.Trap:
-                    int dmg = Math.Max(1, 10 - _gameState.Player.Defense / 2);
+                case TileType.ThornTrap:
+                case TileType.CurseTrap:
+                case TileType.LavaTrap:
+                case TileType.SpikeTrap:
+                case TileType.DivineTrap:
+                    var dmg = Math.Max(1, Dice.RollD6() + _gameState.CurrentFloor - 1);
                     _gameState.Player.HP -= dmg;
                     _gameState.AddCombatLogEntry($"[FALLE] Du hast eine Falle ausgelöst! -{dmg} HP!");
+                    break;
+                case TileType.KeyPedestal:
+                    _gameState.AddCombatLogEntry($"[ALTAR] {tile.HintText}");
                     break;
             }
         }

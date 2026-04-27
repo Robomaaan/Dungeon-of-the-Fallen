@@ -6,10 +6,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow(PlayerClass selectedClass = PlayerClass.Warrior)
         {
             InitializeComponent();
-            var vm = new MainViewModel();
+            var vm = new MainViewModel(selectedClass);
             DataContext = vm;
             vm.CombatRequested += OnCombatRequested;
         }
