@@ -9,21 +9,41 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
     public class MainViewModel : ViewModelBase
     {
-        private const int DungeonSize = 20;
+        // ── Constants ────────────────────────────────────────────────────────
+        private const int DungeonSize      = 20;
         private const int CombatLogMaxEntries = 12;
-        private const int SpawnX = 2;
-        private const int SpawnY = 2;
-        private const int ExitX = 17;
-        private const int ExitY = 17;
-        private const string SaveFileName = "dungeon_save.xml";
+        private const int SpawnX           = 3;
+        private const int SpawnY           = 3;
+        private const int ExitX            = 17;
+        private const int ExitY            = 17;
+        private const string SaveFileName  = "dungeon_save.xml";
 
+        // Dungeon layout: 4 rooms of 8×8 tiles connected by 2-tile-wide corridors.
+        //
+        //   Room 0 (Spawn)  x=1..8  y=1..8    ──corridor──  Room 1 (East)  x=11..18  y=1..8
+        //        │                                                  │
+        //   corridor                                           corridor
+        //        │                                                  │
+        //   Room 2 (South)  x=1..8  y=11..18  ──corridor──  Room 3 (Boss)  x=11..18  y=11..18
+        //
+        // Corridor positions:
+        //   Spawn ↔ East  : x=9..10, y=4..5
+        //   Spawn ↔ South : x=4..5, y=9..10
+        //   East  ↔ Boss  : x=14..15, y=9..10  (locked door at room-3 entrance)
+        //   South ↔ Boss  : x=9..10, y=14..15
+
+        // ── Fields ───────────────────────────────────────────────────────────
         private TurnManager _turnManager;
         private readonly XmlGameRepository _repository = new();
-        private readonly AssetRegistry _assetRegistry = new();
-        private string _combatLog = string.Empty;
+        private readonly AssetRegistry _assetRegistry  = new();
+        private readonly List<Room> _rooms             = new();
+        private Room _currentRoom                      = null!;
+
+        private string _combatLog       = string.Empty;
         private string _biomeDisplayName = string.Empty;
         private bool _isGameOver;
         private bool _isVictory;
+
         private ICommand? _moveUpCommand;
         private ICommand? _moveDownCommand;
         private ICommand? _moveLeftCommand;
@@ -32,29 +52,35 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private ICommand? _usePotionCommand;
         private ICommand? _saveGameCommand;
         private ICommand? _loadGameCommand;
+        private ICommand? _saveAndReturnToMenuCommand;
+        private ICommand? _returnToMenuCommand;
+        private ICommand? _abandonRunCommand;
 
+        // ── Properties ───────────────────────────────────────────────────────
         public GameState GameState { get; private set; }
         public PlayerViewModel PlayerViewModel { get; private set; }
         public ObservableCollection<TileViewModel> Tiles { get; } = new();
         public ObservableCollection<RenderObjectViewModel> RenderObjects { get; } = new();
         public BiomeType CurrentBiome { get; private set; }
         public int CurrentFloor => GameState.CurrentFloor;
-        public string FloorDisplay => $"Floor {GameState.CurrentFloor}/{GameState.FinalFloor}";
+        public string FloorDisplay => $"Ebene {GameState.CurrentFloor}/{GameState.FinalFloor}";
         public string ObjectiveText => GameState.ExitUnlocked
-            ? "Objective complete: reach the exit."
-            : $"Objective: clear the floor and slay the boss ({GameState.EnemiesDefeatedOnFloor}/{GameState.FloorObjectiveTarget}).";
+            ? "Ziel erreicht: Gehe zum Ausgang."
+            : $"Ziel: Besiege alle Gegner und den Boss ({GameState.EnemiesDefeatedOnFloor}/{GameState.FloorObjectiveTarget}).";
         public string ExitStatusText => GameState.ExitUnlocked
-            ? "Exit unlocked"
-            : $"Exit sealed · Keys {GameState.CollectedKeyIds.Count} · Foes remaining {GameState.RemainingFloorEnemies}";
-        public string DungeonSystemsText => $"Keys: {string.Join(", ", GameState.CollectedKeyIds.DefaultIfEmpty("none"))} · Puzzles solved: {GameState.Puzzles.Count(p => p.Solved)}/{GameState.Puzzles.Count}";
+            ? "Ausgang frei"
+            : $"Ausgang versiegelt · Schlüssel {GameState.CollectedKeyIds.Count} · Gegner übrig {GameState.RemainingFloorEnemies}";
+        public string DungeonSystemsText =>
+            $"Schlüssel: {string.Join(", ", GameState.CollectedKeyIds.DefaultIfEmpty("keine"))} · Rätsel gelöst: {GameState.Puzzles.Count(p => p.Solved)}/{GameState.Puzzles.Count}";
         public string RunStatusText => IsVictory
-            ? "All floors conquered."
+            ? "Alle Ebenen bezwungen."
             : IsGameOver
-                ? "The expedition has failed."
+                ? "Die Expedition ist gescheitert."
                 : $"{BiomeDisplayName} · Level {GameState.Player.Level} · {GameState.Player.Weapon.Summary}";
 
-        public int DungeonWidth => GameState.Map.Width;
+        public int DungeonWidth  => GameState.Map.Width;
         public int DungeonHeight => GameState.Map.Height;
+
         public string BiomeDisplayName
         {
             get => _biomeDisplayName;
@@ -89,28 +115,60 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             }
         }
 
+        // ── Commands ─────────────────────────────────────────────────────────
+        public ICommand MoveUpCommand    => _moveUpCommand    ??= new RelayCommand(_ => MovePlayer(0, -1));
+        public ICommand MoveDownCommand  => _moveDownCommand  ??= new RelayCommand(_ => MovePlayer(0,  1));
+        public ICommand MoveLeftCommand  => _moveLeftCommand  ??= new RelayCommand(_ => MovePlayer(-1, 0));
+        public ICommand MoveRightCommand => _moveRightCommand ??= new RelayCommand(_ => MovePlayer( 1, 0));
+        public ICommand RestartGameCommand          => _restartGameCommand          ??= new RelayCommand(_ => RestartGame());
+        public ICommand UsePotionCommand            => _usePotionCommand            ??= new RelayCommand(_ => UsePotion(), _ => !IsGameOver);
+        public ICommand SaveGameCommand             => _saveGameCommand             ??= new RelayCommand(_ => SaveGame(),  _ => !IsGameOver);
+        public ICommand LoadGameCommand             => _loadGameCommand             ??= new RelayCommand(_ => LoadGame());
+        public ICommand SaveAndReturnToMenuCommand  => _saveAndReturnToMenuCommand  ??= new RelayCommand(_ => SaveAndReturnToMenu(), _ => !IsGameOver);
+        public ICommand ReturnToMenuCommand         => _returnToMenuCommand         ??= new RelayCommand(_ => ReturnToMenu());
+        public ICommand AbandonRunCommand           => _abandonRunCommand           ??= new RelayCommand(_ => RequestAbandonRun());
+
         public event Action<Enemy>? CombatRequested;
+        // Gefeuert wenn der Spieler zurück ins Hauptmenü möchte (mit oder ohne Speichern)
+        public event Action? ReturnToMainMenuRequested;
+        // Gefeuert wenn der Spieler um Bestätigung für Run-Abbruch gebeten wird
+        public event Action? AbandonRunRequested;
 
-        public ICommand MoveUpCommand => _moveUpCommand ??= new RelayCommand(_ => MovePlayer(0, -1));
-        public ICommand MoveDownCommand => _moveDownCommand ??= new RelayCommand(_ => MovePlayer(0, 1));
-        public ICommand MoveLeftCommand => _moveLeftCommand ??= new RelayCommand(_ => MovePlayer(-1, 0));
-        public ICommand MoveRightCommand => _moveRightCommand ??= new RelayCommand(_ => MovePlayer(1, 0));
-        public ICommand RestartGameCommand => _restartGameCommand ??= new RelayCommand(_ => RestartGame());
-        public ICommand UsePotionCommand => _usePotionCommand ??= new RelayCommand(_ => UsePotion(), _ => !IsGameOver);
-        public ICommand SaveGameCommand => _saveGameCommand ??= new RelayCommand(_ => SaveGame(), _ => !IsGameOver);
-        public ICommand LoadGameCommand => _loadGameCommand ??= new RelayCommand(_ => LoadGame());
-
+        // ── Constructor ──────────────────────────────────────────────────────
         public MainViewModel(PlayerClass selectedClass = PlayerClass.Warrior)
         {
-            GameState = new GameState(DungeonSize, DungeonSize);
-            _turnManager = new TurnManager(GameState);
+            GameState      = new GameState(DungeonSize, DungeonSize);
+            _turnManager   = new TurnManager(GameState);
             PlayerViewModel = new PlayerViewModel(GameState.Player);
 
+            InitializeRooms();
             ApplyPlayerClass(selectedClass);
             BuildFloor(1, resetProgress: true);
             RefreshTileCollection();
-            UpdateCombatLog($"Game started as {GameState.Player.PlayerClass}! {FloorDisplay} | {BiomeDisplayName} | Find keys, solve riddles, clear the boss chamber.");
+            RebuildRenderObjects();
+            UpdateCombatLog($"Spiel gestartet als {GameState.Player.PlayerClass}! {FloorDisplay} | {BiomeDisplayName} | Finde Schlüssel, löse Rätsel, bezwinge die Bosskammer.");
         }
+
+        // ── Room System ──────────────────────────────────────────────────────
+
+        private void InitializeRooms()
+        {
+            _rooms.Clear();
+            _rooms.Add(new Room("spawn", "Entrance Hall",    1,  1,  8,  8));
+            _rooms.Add(new Room("east",  "Eastern Chamber", 11,  1, 18,  8));
+            _rooms.Add(new Room("south", "Southern Crypt",   1, 11,  8, 18));
+            _rooms.Add(new Room("boss",  "Boss Chamber",    11, 11, 18, 18));
+            _currentRoom = _rooms[0];
+        }
+
+        private void CheckRoomTransition(int x, int y)
+        {
+            var room = _rooms.FirstOrDefault(r => r.Contains(x, y));
+            if (room != null && room.Id != _currentRoom.Id)
+                _currentRoom = room;
+        }
+
+        // ── Movement ─────────────────────────────────────────────────────────
 
         private void MovePlayer(int dx, int dy)
         {
@@ -125,7 +183,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
             if (targetTile.TileType == TileType.Exit && !GameState.ExitUnlocked)
             {
-                GameState.AddCombatLogEntry($"[EXIT] The gate is sealed. Defeat the boss and clear the floor first.");
+                GameState.AddCombatLogEntry("[AUSGANG] Das Tor ist versiegelt. Besiege den Boss und räume die Ebene.");
                 UpdateCombatLog();
                 return;
             }
@@ -141,6 +199,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 if (!IsGameOver && !enemy.IsAlive)
                 {
                     _turnManager.MovePlayer(newX, newY);
+                    CheckRoomTransition(newX, newY);
                     UpdateAllTiles();
                     UpdateCombatLog();
                     CheckGameConditions();
@@ -150,6 +209,14 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
             if (_turnManager.MovePlayer(newX, newY))
             {
+                CheckRoomTransition(newX, newY);
+
+                // Gegner ist während der Feind-Züge neben den Spieler gerückt → Kampf öffnen
+                if (!IsGameOver && _turnManager.PendingEncounterEnemy != null)
+                {
+                    OpenCombat(_turnManager.PendingEncounterEnemy);
+                }
+
                 UpdateAllTiles();
                 UpdateCombatLog();
                 CheckGameConditions();
@@ -162,6 +229,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void OpenCombat(Enemy enemy) => CombatRequested?.Invoke(enemy);
 
+        // ── Actions ──────────────────────────────────────────────────────────
+
         private void UsePotion()
         {
             if (IsGameOver || IsVictory) return;
@@ -169,7 +238,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var potion = GameState.Player.Inventory.Items.OfType<Potion>().FirstOrDefault();
             if (potion == null)
             {
-                GameState.AddCombatLogEntry("[INFO] No potions in inventory!");
+                GameState.AddCombatLogEntry("[INFO] Keine Tränke im Inventar!");
                 UpdateCombatLog();
                 return;
             }
@@ -177,7 +246,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var heal = Math.Min(potion.HealingAmount, GameState.Player.MaxHP - GameState.Player.HP);
             GameState.Player.HP += heal;
             GameState.Player.Inventory.Remove(potion);
-            GameState.AddCombatLogEntry($"[HEAL] Used {potion.Name}: +{heal} HP restored!");
+            GameState.AddCombatLogEntry($"[HEILUNG] {potion.Name} verwendet: +{heal} HP wiederhergestellt!");
             UpdateAllTiles();
             UpdateCombatLog();
         }
@@ -186,7 +255,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             var data = SaveDataMapper.ToSaveData(GameState);
             _repository.Save(data, SaveFileName);
-            GameState.AddCombatLogEntry($"[SAVE] {FloorDisplay} in {BiomeDisplayName} saved successfully!");
+            GameState.AddCombatLogEntry($"[SPEICHERN] {FloorDisplay} in {BiomeDisplayName} gespeichert!");
             UpdateCombatLog();
         }
 
@@ -195,24 +264,42 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var data = _repository.Load(SaveFileName);
             if (data == null)
             {
-                GameState.AddCombatLogEntry("[LOAD] No save file found!");
+                GameState.AddCombatLogEntry("[LADEN] Keine Spielstandsdatei gefunden!");
                 UpdateCombatLog();
                 return;
             }
 
             BuildFloor(data.CurrentFloor, resetProgress: false);
             IsGameOver = false;
-            IsVictory = false;
+            IsVictory  = false;
             SaveDataMapper.ApplyToGameState(GameState, data);
             CurrentBiome = GameState.CurrentBiome;
             UpdateBiomeDisplay();
             OnPropertyChanged(nameof(CurrentFloor), nameof(FloorDisplay));
 
-            GameState.AddCombatLogEntry($"[LOAD] Game loaded! Save v{data.SaveVersion} restored on {FloorDisplay}.");
+            GameState.AddCombatLogEntry($"[LADEN] Spielstand geladen! Speicherstand v{data.SaveVersion} auf {FloorDisplay} wiederhergestellt.");
             UpdateAllTiles();
             UpdateCombatLog();
             CheckGameConditions();
         }
+
+        private void SaveAndReturnToMenu()
+        {
+            if (!IsGameOver) SaveGame();
+            ReturnToMainMenuRequested?.Invoke();
+        }
+
+        private void ReturnToMenu()
+        {
+            ReturnToMainMenuRequested?.Invoke();
+        }
+
+        private void RequestAbandonRun()
+        {
+            AbandonRunRequested?.Invoke();
+        }
+
+        // ── Game Flow ────────────────────────────────────────────────────────
 
         private void CheckGameConditions()
         {
@@ -220,16 +307,16 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             {
                 if (!GameState.ExitUnlocked)
                 {
-                    GameState.AddCombatLogEntry("[EXIT] The path downward remains sealed.");
+                    GameState.AddCombatLogEntry("[AUSGANG] Der Weg nach unten bleibt versiegelt.");
                     UpdateCombatLog();
                     return;
                 }
 
                 if (GameState.CurrentFloor >= GameState.FinalFloor)
                 {
-                    IsVictory = true;
+                    IsVictory  = true;
                     IsGameOver = true;
-                    GameState.AddCombatLogEntry("[VICTORY] You conquered all dungeon floors!");
+                    GameState.AddCombatLogEntry("[SIEG] Du hast alle Kerkerebenen bezwungen!");
                 }
                 else
                 {
@@ -246,40 +333,299 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private void AdvanceToNextFloor()
         {
             var nextFloor = GameState.CurrentFloor + 1;
-            var heal = Math.Min(12 + (GameState.CurrentFloor * 4), GameState.Player.MaxHP - GameState.Player.HP);
+            var heal = Math.Min(12 + GameState.CurrentFloor * 4, GameState.Player.MaxHP - GameState.Player.HP);
             if (heal > 0)
                 GameState.Player.HP += heal;
 
-            GameState.Player.Inventory.Add(new Potion("Travel Potion", 20 + nextFloor * 4));
+            GameState.Player.Inventory.Add(new Potion("Reisetrunk", 20 + nextFloor * 4));
             BuildFloor(nextFloor, resetProgress: false);
             RefreshTileCollection();
             UpdateAllTiles();
-            GameState.AddCombatLogEntry($"[FLOOR] Descended to {FloorDisplay}. New biome: {BiomeDisplayName}. Camp prep restores {heal} HP.");
+            GameState.AddCombatLogEntry($"[ETAGE] Hinabgestiegen zu {FloorDisplay}. Neues Biotop: {BiomeDisplayName}. Rastpause stellt {heal} HP wieder her.");
         }
 
         private void RestartGame()
         {
             var playerClass = GameState.Player.PlayerClass;
-            GameState = new GameState(DungeonSize, DungeonSize);
-            _turnManager = new TurnManager(GameState);
+            GameState       = new GameState(DungeonSize, DungeonSize);
+            _turnManager    = new TurnManager(GameState);
             PlayerViewModel = new PlayerViewModel(GameState.Player);
             OnPropertyChanged(nameof(GameState), nameof(PlayerViewModel), nameof(DungeonWidth), nameof(DungeonHeight));
 
             ApplyPlayerClass(playerClass);
             BuildFloor(1, resetProgress: true);
             IsGameOver = false;
-            IsVictory = false;
+            IsVictory  = false;
 
             RefreshTileCollection();
             UpdateAllTiles();
-            UpdateCombatLog($"Game restarted as {GameState.Player.PlayerClass} on {FloorDisplay} in {BiomeDisplayName}.");
+            UpdateCombatLog($"Spiel neu gestartet als {GameState.Player.PlayerClass} auf {FloorDisplay} in {BiomeDisplayName}.");
         }
+
+        // ── Floor Building ───────────────────────────────────────────────────
+
+        private void BuildFloor(int floor, bool resetProgress)
+        {
+            if (resetProgress)
+            {
+                GameState.Player.XP    = 0;
+                GameState.Player.Level = 1;
+                GameState.Player.Gold  = 0;
+                GameState.CollectedKeyIds.Clear();
+            }
+
+            GameState.CurrentFloor  = floor;
+            GameState.CurrentBiome  = FloorThemeService.GetBiomeForFloor(floor);
+            GameState.ExitUnlocked  = false;
+            GameState.BossDefeatedOnFloor   = false;
+            GameState.EnemiesDefeatedOnFloor = 0;
+            CurrentBiome = GameState.CurrentBiome;
+            UpdateBiomeDisplay();
+
+            // Reset current room to spawn
+            _currentRoom = _rooms.Count > 0 ? _rooms.First(r => r.Id == "spawn") : _rooms.FirstOrDefault()!;
+
+            GameState.Enemies.Clear();
+            GameState.Npcs.Clear();
+            GameState.Puzzles.Clear();
+            foreach (var tile in GameState.Map.GetAllTiles())
+            {
+                tile.HasPlayer = false;
+                tile.Enemy     = null;
+                tile.Item      = null;
+                tile.Npc       = null;
+                tile.DoorKeyId  = null;
+                tile.PuzzleId   = null;
+                tile.HintText   = null;
+            }
+
+            InitializeDemoMap();
+            SpawnEnemies();
+            SpawnNpcs();
+        }
+
+        // ── Map Layout ───────────────────────────────────────────────────────
+        // Layout (20×20):
+        //  [0]  = border wall
+        //  [R0] = Spawn room   x=1..8,  y=1..8
+        //  [R1] = East room    x=11..18, y=1..8
+        //  [R2] = South room   x=1..8,  y=11..18
+        //  [R3] = Boss room    x=11..18, y=11..18
+        //  Corridors (floor): see diagram in class header
+
+        private void InitializeDemoMap()
+        {
+            var map      = GameState.Map;
+            var floor    = GetFloorTileTypeForBiome(CurrentBiome);
+            var healType = GetHealingTileTypeForBiome(CurrentBiome);
+            var trapType = GetTrapTileTypeForBiome(CurrentBiome);
+
+            // 1. Fill everything with walls
+            for (var y = 0; y < map.Height; y++)
+            for (var x = 0; x < map.Width;  x++)
+                map.SetTile(x, y, new Tile(x, y, TileType.Wall));
+
+            // 2. Carve rooms
+            foreach (var room in _rooms)
+                CarveFloor(map, room.X1, room.Y1, room.X2, room.Y2, floor);
+
+            // 3. Carve corridors
+            CarveFloor(map,  9,  4, 10,  5, floor);   // Spawn ↔ East
+            CarveFloor(map,  4,  9,  5, 10, floor);   // Spawn ↔ South
+            CarveFloor(map, 14,  9, 15, 10, floor);   // East  ↔ Boss
+            CarveFloor(map,  9, 14, 10, 15, floor);   // South ↔ Boss
+
+            // 4. Locked door: entrance to Boss room from East corridor (amber key)
+            SetTileType(map, 14, 11, TileType.LockedDoor);
+            var d1 = map.GetTile(14, 11);
+            if (d1 != null) { d1.DoorKeyId = $"amber-{GameState.CurrentFloor}"; d1.HintText = "Die Tore zur Bosskammer sind versiegelt. Du benötigst den Bernsteinschlüssel."; }
+
+            // Floor 3+: second locked door from South corridor (ivory key)
+            if (GameState.CurrentFloor >= 3)
+            {
+                SetTileType(map, 11, 14, TileType.LockedDoor);
+                var d2 = map.GetTile(11, 14);
+                if (d2 != null) { d2.DoorKeyId = $"ivory-{GameState.CurrentFloor}"; d2.HintText = "Nur ein Elfenbeinschlüssel aus der südlichen Gruft öffnet dieses Tor."; }
+            }
+
+            // 5. Spawn & Exit
+            SetTileType(map, SpawnX, SpawnY, TileType.Spawn);
+            var spawnTile = map.GetTile(SpawnX, SpawnY);
+            if (spawnTile != null) spawnTile.HasPlayer = true;
+            GameState.Player.PositionX = SpawnX;
+            GameState.Player.PositionY = SpawnY;
+
+            SetTileType(map, ExitX, ExitY, TileType.Exit);
+
+            // 6. Healing shrines (one per room)
+            SetTileType(map, 7, 2, healType);
+            SetTileType(map, 17, 2, healType);
+            SetTileType(map, 7, 17, healType);
+            SetTileType(map, 12, 12, healType);
+
+            // 7. Traps
+            SetTileType(map, 13, 5, trapType);   // East room
+            SetTileType(map,  4, 14, trapType);  // South room
+            if (GameState.CurrentFloor >= 2)
+            {
+                SetTileType(map, 16, 6, trapType);   // East room extra
+                SetTileType(map,  3, 15, trapType);  // South room extra
+            }
+
+            // 8. Items
+            AddItem(6, 6, new Potion("Heiltrank",     25 + (GameState.CurrentFloor - 1) * 5));
+            AddItem(16, 3, new Item("Goldhaufen",     ItemType.Gold));
+            AddItem(15, 15, new Potion("Großer Heiltrank", 30 + GameState.CurrentFloor * 5));
+            AddItem(3, 17, new Item("Goldversteck",   ItemType.Gold));
+
+            // 9. Keys
+            AddKey(17, 6, new KeyItem("Bernsteinschlüssel", $"amber-{GameState.CurrentFloor}"));
+            if (GameState.CurrentFloor >= 3)
+                AddKey(7, 16, new KeyItem("Elfenbeinschlüssel", $"ivory-{GameState.CurrentFloor}"));
+
+            // 10. Puzzle (South room)
+            AddPuzzle(3, 16, new PuzzleEncounter
+            {
+                PuzzleId   = $"riddle-{GameState.CurrentFloor}",
+                Title      = "Flüsternde Runen",
+                Riddle     = "Ich öffne Münder aus Stein, doch wiege weniger als Luft. Was bin ich?",
+                Hint       = "Der Chronist spricht oft vom richtigen Wort.",
+                RewardText = "Die Runen akzeptieren 'Schlüssel' als Antwort und enthüllen verborgene Schätze."
+            });
+
+            // 11. Key pedestal (Boss room)
+            SetTileType(map, 15, 16, TileType.KeyPedestal);
+            var pedestal = map.GetTile(15, 16);
+            if (pedestal != null) pedestal.HintText = "Inschrift am Altar: 'Stahl öffnet Kriege, Worte öffnen Welten.'";
+        }
+
+        // ── Spawning ─────────────────────────────────────────────────────────
+
+        private void SpawnEnemies()
+        {
+            var positions = GetValidSpawnPositions();
+            var roster    = EnemySpawnService.CreateRoster(CurrentBiome, GameState.CurrentFloor).ToList();
+            GameState.FloorObjectiveTarget = roster.Count;
+
+            foreach (var enemy in roster.Where(e => !e.IsBoss))
+            {
+                if (positions.Count == 0) break;
+                PlaceEnemy(enemy, positions[0].x, positions[0].y);
+                positions.RemoveAt(0);
+            }
+
+            // Boss always placed in the Boss room at a random free position
+            var boss     = roster.FirstOrDefault(e => e.IsBoss);
+            var bossRoom = _rooms.Find(r => r.Id == "boss");
+            if (boss != null && bossRoom != null)
+            {
+                var bossPos = GetRandomRoomPosition(bossRoom);
+                PlaceEnemy(boss, bossPos.x, bossPos.y);
+            }
+        }
+
+        private void SpawnNpcs()
+        {
+            var npcDefs = new[]
+            {
+                new Npc { Name = "Sister Mirel",    NpcType = NpcType.Healer,     Greeting = "Ruhe deinen Geist aus." },
+                new Npc { Name = "Dorin",           NpcType = NpcType.Merchant,   Greeting = "Vorräte gegen Gold oder Mut gegen Armut." },
+                new Npc { Name = "Archivist Oren",  NpcType = NpcType.Chronicler, Greeting = "Hinter jedem Siegel wartet eine Geschichte." },
+                new Npc { Name = "Brakka",          NpcType = NpcType.Blacksmith, Greeting = "Zeig mir deine Klinge." },
+                new Npc { Name = "Lysa",            NpcType = NpcType.Scout,      Greeting = "Ich beobachte jede Bewegung hier unten." }
+            }.ToList();
+
+            if (GameState.CurrentFloor >= 3)
+                npcDefs.Add(new Npc { Name = "Vael", NpcType = NpcType.Mystic, Greeting = "Die Sterne flüstern die Lösung bereits." });
+
+            // Positions within the new room layout
+            var positions = new List<(int x, int y)>
+            {
+                (7, 7),    // Room 0: Healer
+                (17, 7),   // Room 1: Merchant
+                (2, 12),   // Room 2: Chronicler
+                (2, 2),    // Room 0: Blacksmith
+                (17, 12),  // Room 3: Scout
+                (12, 3),   // Room 1: Mystic (floor 3+)
+            };
+
+            for (var i = 0; i < npcDefs.Count && i < positions.Count; i++)
+            {
+                var npc = npcDefs[i];
+                var pos = positions[i];
+                npc.PositionX = pos.x;
+                npc.PositionY = pos.y;
+                GameState.Npcs.Add(npc);
+                var tile = GameState.Map.GetTile(pos.x, pos.y);
+                if (tile != null && tile.Enemy == null)
+                    tile.Npc = npc;
+            }
+        }
+
+        // Returns shuffled valid spawn positions across all non-spawn rooms.
+        private List<(int x, int y)> GetValidSpawnPositions()
+        {
+            var map       = GameState.Map;
+            var positions = new List<(int x, int y)>();
+
+            foreach (var room in _rooms.Where(r => r.Id != "spawn"))
+            {
+                for (var y = room.Y1; y <= room.Y2; y++)
+                for (var x = room.X1; x <= room.X2; x++)
+                {
+                    var tile = map.GetTile(x, y);
+                    if (tile != null && tile.IsWalkable && !tile.HasPlayer
+                        && tile.Enemy == null && tile.Npc == null
+                        && tile.TileType != TileType.Exit
+                        && tile.TileType != TileType.Puzzle
+                        && tile.TileType != TileType.LockedDoor)
+                        positions.Add((x, y));
+                }
+            }
+
+            // Fisher-Yates shuffle for truly random placement
+            for (var i = positions.Count - 1; i > 0; i--)
+            {
+                var j = Random.Shared.Next(i + 1);
+                (positions[i], positions[j]) = (positions[j], positions[i]);
+            }
+
+            return positions;
+        }
+
+        private (int x, int y) GetRandomRoomPosition(Room room)
+        {
+            var map        = GameState.Map;
+            var candidates = new List<(int x, int y)>();
+            for (var y = room.Y1; y <= room.Y2; y++)
+            for (var x = room.X1; x <= room.X2; x++)
+            {
+                var tile = map.GetTile(x, y);
+                if (tile?.IsWalkable == true && tile.Enemy == null && tile.Npc == null
+                    && tile.TileType != TileType.Exit && tile.TileType != TileType.Spawn)
+                    candidates.Add((x, y));
+            }
+            return candidates.Count > 0
+                ? candidates[Random.Shared.Next(candidates.Count)]
+                : (room.CenterX, room.CenterY);
+        }
+
+        private void PlaceEnemy(Enemy enemy, int x, int y)
+        {
+            enemy.PositionX = x;
+            enemy.PositionY = y;
+            GameState.Enemies.Add(enemy);
+            var tile = GameState.Map.GetTile(x, y);
+            if (tile != null) tile.Enemy = enemy;
+        }
+
+        // ── Tile & Player helpers ────────────────────────────────────────────
 
         public void RefreshTileCollection()
         {
             Tiles.Clear();
             for (var y = 0; y < GameState.Map.Height; y++)
-            for (var x = 0; x < GameState.Map.Width; x++)
+            for (var x = 0; x < GameState.Map.Width;  x++)
             {
                 var tile = GameState.Map.GetTile(x, y);
                 if (tile is not null)
@@ -293,209 +639,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 tileVm.UpdateDisplay();
             PlayerViewModel.UpdateStatus();
             RebuildRenderObjects();
-            OnPropertyChanged(nameof(CurrentFloor), nameof(FloorDisplay), nameof(ObjectiveText), nameof(ExitStatusText), nameof(RunStatusText), nameof(DungeonSystemsText));
+            OnPropertyChanged(nameof(CurrentFloor), nameof(FloorDisplay), nameof(ObjectiveText),
+                nameof(ExitStatusText), nameof(RunStatusText), nameof(DungeonSystemsText));
         }
 
         private void UpdateCombatLog(string? overrideMessage = null)
         {
-            if (overrideMessage != null)
-            {
-                CombatLog = overrideMessage;
-                return;
-            }
-
+            if (overrideMessage != null) { CombatLog = overrideMessage; return; }
             if (GameState.CombatLog.Count > 0)
                 CombatLog = string.Join("\n", GameState.CombatLog.TakeLast(CombatLogMaxEntries));
-        }
-
-        private void BuildFloor(int floor, bool resetProgress)
-        {
-            if (resetProgress)
-            {
-                GameState.Player.XP = 0;
-                GameState.Player.Level = 1;
-                GameState.Player.Gold = 0;
-                GameState.CollectedKeyIds.Clear();
-            }
-
-            GameState.CurrentFloor = floor;
-            GameState.CurrentBiome = FloorThemeService.GetBiomeForFloor(floor);
-            GameState.ExitUnlocked = false;
-            GameState.BossDefeatedOnFloor = false;
-            GameState.EnemiesDefeatedOnFloor = 0;
-            CurrentBiome = GameState.CurrentBiome;
-            UpdateBiomeDisplay();
-
-            GameState.Enemies.Clear();
-            GameState.Npcs.Clear();
-            GameState.Puzzles.Clear();
-            foreach (var tile in GameState.Map.GetAllTiles())
-            {
-                tile.HasPlayer = false;
-                tile.Enemy = null;
-                tile.Item = null;
-                tile.Npc = null;
-                tile.DoorKeyId = null;
-                tile.PuzzleId = null;
-                tile.HintText = null;
-            }
-
-            InitializeDemoMap();
-            SpawnEnemies();
-            SpawnNpcs();
-        }
-
-        private void SpawnEnemies()
-        {
-            var positions = GetValidSpawnPositions();
-            var roster = EnemySpawnService.CreateRoster(CurrentBiome, GameState.CurrentFloor).ToList();
-            GameState.FloorObjectiveTarget = roster.Count;
-
-            foreach (var enemy in roster.Where(e => !e.IsBoss))
-            {
-                if (positions.Count == 0) break;
-                var pos = positions[0];
-                positions.RemoveAt(0);
-                enemy.PositionX = pos.x;
-                enemy.PositionY = pos.y;
-                GameState.Enemies.Add(enemy);
-                var tile = GameState.Map.GetTile(pos.x, pos.y);
-                if (tile != null) tile.Enemy = enemy;
-            }
-
-            var boss = roster.FirstOrDefault(e => e.IsBoss);
-            if (boss != null && positions.Count > 0)
-            {
-                var bossPos = positions.OrderByDescending(p => Math.Abs(p.x - SpawnX) + Math.Abs(p.y - SpawnY)).First();
-                boss.PositionX = bossPos.x;
-                boss.PositionY = bossPos.y;
-                GameState.Enemies.Add(boss);
-                var tile = GameState.Map.GetTile(bossPos.x, bossPos.y);
-                if (tile != null) tile.Enemy = boss;
-            }
-        }
-
-        private void SpawnNpcs()
-        {
-            var npcDefinitions = new[]
-            {
-                new Npc { Name = "Sister Mirel", NpcType = NpcType.Healer, Greeting = "Ruhe deinen Geist aus." },
-                new Npc { Name = "Dorin", NpcType = NpcType.Merchant, Greeting = "Vorräte gegen Gold oder Mut gegen Armut." },
-                new Npc { Name = "Archivist Oren", NpcType = NpcType.Chronicler, Greeting = "Hinter jedem Siegel wartet eine Geschichte." },
-                new Npc { Name = "Brakka", NpcType = NpcType.Blacksmith, Greeting = "Zeig mir deine Klinge." },
-                new Npc { Name = "Lysa", NpcType = NpcType.Scout, Greeting = "Ich beobachte jede Bewegung hier unten." }
-            }.ToList();
-
-            if (GameState.CurrentFloor >= 3)
-                npcDefinitions.Add(new Npc { Name = "Vael", NpcType = NpcType.Mystic, Greeting = "Die Sterne flüstern die Lösung bereits." });
-
-            var positions = new List<(int x, int y)> { (3, 10), (10, 10), (16, 6), (5, 4), (15, 14), (9, 4) };
-            for (var i = 0; i < npcDefinitions.Count && i < positions.Count; i++)
-            {
-                var npc = npcDefinitions[i];
-                var pos = positions[i];
-                npc.PositionX = pos.x;
-                npc.PositionY = pos.y;
-                GameState.Npcs.Add(npc);
-                var tile = GameState.Map.GetTile(pos.x, pos.y);
-                if (tile != null && tile.Enemy == null)
-                    tile.Npc = npc;
-            }
-        }
-
-        private List<(int x, int y)> GetValidSpawnPositions()
-        {
-            var positions = new List<(int x, int y)>();
-            var map = GameState.Map;
-
-            for (var y = 4; y < map.Height - 2; y++)
-            for (var x = 4; x < map.Width - 2; x++)
-            {
-                if (Math.Abs(x - SpawnX) + Math.Abs(y - SpawnY) < 6) continue;
-                var tile = map.GetTile(x, y);
-                if (tile != null && tile.IsWalkable && !tile.HasPlayer && tile.Enemy == null
-                    && tile.Npc == null && tile.TileType != TileType.Exit && tile.TileType != TileType.Puzzle)
-                {
-                    positions.Add((x, y));
-                }
-            }
-
-            return positions.OrderBy(p => p.y).ThenBy(p => p.x).ToList();
-        }
-
-        private void InitializeDemoMap()
-        {
-            var map = GameState.Map;
-            FillMap(map, GetFloorTileTypeForBiome(CurrentBiome));
-            CreateBorderWalls(map);
-
-            for (var x = 4; x <= 10; x++) SetTile(map, x, 6, TileType.Wall);
-            for (var y = 1; y <= 8; y++) SetTile(map, 13, y, TileType.Wall);
-            SetTile(map, 13, 6, TileType.Floor);
-            for (var x = 1; x <= 7; x++) SetTile(map, x, 12, TileType.Wall);
-            for (var x = 9; x <= 13; x++) SetTile(map, x, 12, TileType.Wall);
-            for (var y = 12; y <= 18; y++) SetTile(map, 13, y, TileType.Wall);
-            SetTile(map, 13, 15, TileType.Floor);
-
-            if (GameState.CurrentFloor >= 2)
-            {
-                for (var y = 8; y <= 16; y++) SetTile(map, 8, y, TileType.Wall);
-                ConfigureDoor(map, 8, 10, $"amber-{GameState.CurrentFloor}", "The amber seal hums with druidic magic.");
-                SetTile(map, 8, 14, TileType.Floor);
-            }
-
-            if (GameState.CurrentFloor >= 3)
-            {
-                for (var x = 10; x <= 16; x++) SetTile(map, x, 9, TileType.Wall);
-                ConfigureDoor(map, 12, 9, $"ivory-{GameState.CurrentFloor}", "Only an ivory key from the puzzle wing will open this path.");
-                SetTile(map, 15, 9, TileType.Floor);
-            }
-
-            var healTile = map.GetTile(16, 4);
-            if (healTile != null) healTile.TileType = GetHealingTileTypeForBiome(CurrentBiome);
-            var trap1 = map.GetTile(5, 15);
-            if (trap1 != null) trap1.TileType = GetTrapTileTypeForBiome(CurrentBiome);
-            var trap2 = map.GetTile(9, 16);
-            if (trap2 != null) trap2.TileType = GetTrapTileTypeForBiome(CurrentBiome);
-            var trap3 = map.GetTile(15, 11);
-            if (trap3 != null && GameState.CurrentFloor >= 2) trap3.TileType = GetTrapTileTypeForBiome(CurrentBiome);
-
-            AddItem(10, 3, new Potion("Health Potion", 25 + (GameState.CurrentFloor - 1) * 5));
-            AddItem(7, 9, new Item("Gold Pile", ItemType.Gold));
-            AddItem(15, 5, new Potion("Greater Potion", 30 + GameState.CurrentFloor * 5));
-            AddItem(4, 16, new Item("Gold Cache", ItemType.Gold));
-
-            AddKey(11, 14, new KeyItem("Amber Key", $"amber-{GameState.CurrentFloor}"));
-            if (GameState.CurrentFloor >= 3)
-                AddKey(6, 16, new KeyItem("Ivory Key", $"ivory-{GameState.CurrentFloor}"));
-
-            AddPuzzle(5, 5, new PuzzleEncounter
-            {
-                PuzzleId = $"riddle-{GameState.CurrentFloor}",
-                Title = "Whispering Runes",
-                Riddle = "I open mouths of stone, yet weigh less than air. What am I?",
-                Hint = "The chronicler speaks often of the right word.",
-                RewardText = "The runes accept 'key' as the answer and reveal hidden treasure."
-            });
-
-            var pedestal = map.GetTile(14, 4);
-            if (pedestal != null)
-            {
-                pedestal.TileType = TileType.KeyPedestal;
-                pedestal.HintText = "Pedestal inscription: 'Steel opens war, words open worlds.'";
-            }
-
-            var spawnTile = map.GetTile(SpawnX, SpawnY);
-            if (spawnTile != null)
-            {
-                spawnTile.TileType = TileType.Spawn;
-                spawnTile.HasPlayer = true;
-            }
-            GameState.Player.PositionX = SpawnX;
-            GameState.Player.PositionY = SpawnY;
-
-            var exitTile = map.GetTile(ExitX, ExitY);
-            if (exitTile != null) exitTile.TileType = TileType.Exit;
         }
 
         private void ApplyPlayerClass(PlayerClass selectedClass)
@@ -508,274 +660,177 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             BiomeDisplayName = CurrentBiome switch
             {
-                BiomeType.Forest => "Forest Depths",
-                BiomeType.Crypt => "Haunted Crypt",
-                BiomeType.Volcanic => "Volcanic Core",
-                BiomeType.Underwater => "Sunken Ruins",
-                BiomeType.Celestial => "Celestial Gate",
-                _ => CurrentBiome.ToString()
+                BiomeType.Forest     => "Waldtiefen",
+                BiomeType.Crypt      => "Verfluchte Gruft",
+                BiomeType.Volcanic   => "Vulkankern",
+                BiomeType.Underwater => "Versunkene Ruinen",
+                BiomeType.Celestial  => "Himmelstor",
+                _                    => CurrentBiome.ToString()
             };
         }
 
         private void AddItem(int x, int y, Item item)
         {
             var tile = GameState.Map.GetTile(x, y);
-            if (tile != null)
-                tile.Item = item;
+            if (tile != null) tile.Item = item;
         }
 
         private void AddKey(int x, int y, KeyItem key)
         {
             var tile = GameState.Map.GetTile(x, y);
-            if (tile != null)
-            {
-                tile.Item = key;
-                tile.TileType = TileType.KeyPedestal;
-                tile.HintText = $"A key rests here for lock '{key.KeyId}'.";
-            }
+            if (tile != null) { tile.Item = key; tile.TileType = TileType.KeyPedestal; tile.HintText = $"Hier liegt ein Schlüssel für Schloss '{key.KeyId}'."; }
         }
 
         private void AddPuzzle(int x, int y, PuzzleEncounter puzzle)
         {
             GameState.Puzzles.Add(puzzle);
             var tile = GameState.Map.GetTile(x, y);
-            if (tile != null)
-            {
-                tile.TileType = TileType.Puzzle;
-                tile.PuzzleId = puzzle.PuzzleId;
-                tile.HintText = puzzle.Hint;
-            }
+            if (tile != null) { tile.TileType = TileType.Puzzle; tile.PuzzleId = puzzle.PuzzleId; tile.HintText = puzzle.Hint; }
         }
 
-        private void ConfigureDoor(DungeonMap map, int x, int y, string keyId, string hint)
+        // ── Map building helpers ─────────────────────────────────────────────
+
+        private static void CarveFloor(DungeonMap map, int x1, int y1, int x2, int y2, TileType floor)
+        {
+            for (var y = y1; y <= y2; y++)
+            for (var x = x1; x <= x2; x++)
+                map.SetTile(x, y, new Tile(x, y, floor));
+        }
+
+        private static void SetTileType(DungeonMap map, int x, int y, TileType type)
         {
             var tile = map.GetTile(x, y);
-            if (tile != null)
-            {
-                tile.TileType = TileType.LockedDoor;
-                tile.DoorKeyId = keyId;
-                tile.HintText = hint;
-            }
+            if (tile != null) tile.TileType = type;
         }
 
-        private static TileType GetFloorTileTypeForBiome(BiomeType biomeType) => biomeType switch
+        private static TileType GetFloorTileTypeForBiome(BiomeType b) => b switch
         {
-            BiomeType.Forest => TileType.Floor,
-            BiomeType.Crypt => TileType.CursedFloor,
-            BiomeType.Volcanic => TileType.AshFloor,
+            BiomeType.Forest     => TileType.Floor,
+            BiomeType.Crypt      => TileType.CursedFloor,
+            BiomeType.Volcanic   => TileType.AshFloor,
             BiomeType.Underwater => TileType.SandFloor,
-            BiomeType.Celestial => TileType.CloudFloor,
-            _ => TileType.Floor
+            BiomeType.Celestial  => TileType.CloudFloor,
+            _                    => TileType.Floor
         };
 
-        private static TileType GetTrapTileTypeForBiome(BiomeType biomeType) => biomeType switch
+        private static TileType GetTrapTileTypeForBiome(BiomeType b) => b switch
         {
-            BiomeType.Forest => TileType.ThornTrap,
-            BiomeType.Crypt => TileType.CurseTrap,
-            BiomeType.Volcanic => TileType.LavaTrap,
+            BiomeType.Forest     => TileType.ThornTrap,
+            BiomeType.Crypt      => TileType.CurseTrap,
+            BiomeType.Volcanic   => TileType.LavaTrap,
             BiomeType.Underwater => TileType.SpikeTrap,
-            BiomeType.Celestial => TileType.DivineTrap,
-            _ => TileType.Trap
+            BiomeType.Celestial  => TileType.DivineTrap,
+            _                    => TileType.Trap
         };
 
-        private static TileType GetHealingTileTypeForBiome(BiomeType biomeType) => biomeType switch
+        private static TileType GetHealingTileTypeForBiome(BiomeType b) => b switch
         {
-            BiomeType.Forest => TileType.HealingShrine,
-            BiomeType.Crypt => TileType.HealingAltar,
-            BiomeType.Volcanic => TileType.HotSpring,
+            BiomeType.Forest     => TileType.HealingShrine,
+            BiomeType.Crypt      => TileType.HealingAltar,
+            BiomeType.Volcanic   => TileType.HotSpring,
             BiomeType.Underwater => TileType.HealingBubble,
-            BiomeType.Celestial => TileType.LightCircle,
-            _ => TileType.HealingRoom
+            BiomeType.Celestial  => TileType.LightCircle,
+            _                    => TileType.HealingRoom
         };
 
-        private static void FillMap(DungeonMap map, TileType tileType)
-        {
-            for (var y = 0; y < map.Height; y++)
-            for (var x = 0; x < map.Width; x++)
-                map.SetTile(x, y, new Tile(x, y, tileType));
-        }
+        // ── Rendering ────────────────────────────────────────────────────────
 
-        private static void CreateBorderWalls(DungeonMap map)
-        {
-            for (var x = 0; x < map.Width; x++)
-            {
-                map.SetTile(x, 0, new Tile(x, 0, TileType.Wall));
-                map.SetTile(x, map.Height - 1, new Tile(x, map.Height - 1, TileType.Wall));
-            }
-            for (var y = 0; y < map.Height; y++)
-            {
-                map.SetTile(0, y, new Tile(0, y, TileType.Wall));
-                map.SetTile(map.Width - 1, y, new Tile(map.Width - 1, y, TileType.Wall));
-            }
-        }
-
-        private static void SetTile(DungeonMap map, int x, int y, TileType tileType)
-        {
-            map.SetTile(x, y, new Tile(x, y, tileType));
-        }
-
-        /// <summary>
-        /// Rebuilds the RenderObjects collection for 2.5D sprite-based rendering.
-        /// Called after game state changes to update the visual representation.
-        /// Uses pseudo-isometric projection with simplified Z-ordering.
-        /// </summary>
+        // Renders only the current room + 2-tile border (to show corridor exits).
+        // Tile sizes are calculated dynamically so the room fills the canvas area.
         private void RebuildRenderObjects()
         {
-            // Rendering constants for 2.5D pseudo-isometric projection
-            const double TileWidth = 64;
-            const double TileHeight = 48;
-            const double TileStepX = 64;
-            const double TileStepY = 36;
-            const double MapOffsetX = 80;
-            const double MapOffsetY = 40;
-            const double CharacterWidth = 64;
-            const double CharacterHeight = 96;
-            const double WallHeight = 96;
+            const double TargetW = 1040;
+            const double TargetH = 640;
+            const double OffsetX = 30;
+            const double OffsetY = 20;
 
             RenderObjects.Clear();
-            var map = GameState.Map;
+            var map  = GameState.Map;
+            var room = _currentRoom;
+            if (room == null) return;
 
-            // Iterate through all tiles from back to front (top-left to bottom-right)
-            for (var y = 0; y < map.Height; y++)
+            // Extend by 2 tiles in each direction to show corridor openings
+            var vx1 = Math.Max(0, room.X1 - 2);
+            var vy1 = Math.Max(0, room.Y1 - 2);
+            var vx2 = Math.Min(map.Width  - 1, room.X2 + 2);
+            var vy2 = Math.Min(map.Height - 1, room.Y2 + 2);
+            var vw  = vx2 - vx1 + 1;
+            var vh  = vy2 - vy1 + 1;
+
+            var tileW = TargetW / vw;
+            var tileH = TargetH / vh;
+            var charH = tileH * 1.8;
+
+            for (var y = vy1; y <= vy2; y++)
+            for (var x = vx1; x <= vx2; x++)
             {
-                for (var x = 0; x < map.Width; x++)
+                var tile = map.GetTile(x, y);
+                if (tile == null) continue;
+
+                var sx = OffsetX + (x - vx1) * tileW;
+                var sy = OffsetY + (y - vy1) * tileH;
+                var bz = y * 100;
+
+                // Floor (always rendered as base)
+                RenderObjects.Add(new RenderObjectViewModel(
+                    _assetRegistry.GetFloorAsset(tile),
+                    sx, sy, tileW, tileH, bz, $"F_{x}_{y}", "floor"));
+
+                // Wall (taller, rendered above floor)
+                if (tile.TileType == TileType.Wall)
                 {
-                    var tile = map.GetTile(x, y);
-                    if (tile == null) continue;
-
-                    // Calculate screen coordinates using pseudo-isometric projection
-                    var screenX = MapOffsetX + (x * TileStepX);
-                    var screenY = MapOffsetY + (y * TileStepY);
-                    var baseZIndex = y * 100;
-
-                    // 1. Floor tiles (base layer)
-                    var floorAsset = _assetRegistry.GetFloorAsset(tile);
-                    if (!string.IsNullOrEmpty(floorAsset))
-                    {
-                        var floorObj = new RenderObjectViewModel(
-                            floorAsset,
-                            screenX,
-                            screenY,
-                            TileWidth,
-                            TileHeight,
-                            baseZIndex,
-                            $"Floor_{x}_{y}",
-                            "floor");
-                        RenderObjects.Add(floorObj);
-                    }
-
-                    // 2. Walls (if present)
-                    if (tile.TileType == TileType.Wall)
-                    {
-                        var wallAsset = _assetRegistry.GetWallAsset(tile, map);
-                        if (!string.IsNullOrEmpty(wallAsset))
-                        {
-                            var wallObj = new RenderObjectViewModel(
-                                wallAsset,
-                                screenX,
-                                screenY - 48,
-                                TileWidth,
-                                WallHeight,
-                                baseZIndex + 40,
-                                $"Wall_{x}_{y}",
-                                "wall");
-                            RenderObjects.Add(wallObj);
-                        }
-                    }
-
-                    // 3. Special tiles (doors, traps, puzzles, exits)
-                    var specialAsset = _assetRegistry.GetSpecialTileAsset(tile);
-                    if (!string.IsNullOrEmpty(specialAsset) && tile.TileType != TileType.Wall)
-                    {
-                        var specialObj = new RenderObjectViewModel(
-                            specialAsset,
-                            screenX,
-                            screenY,
-                            TileWidth,
-                            TileHeight,
-                            baseZIndex + 10,
-                            $"Special_{tile.TileType}_{x}_{y}",
-                            "special");
-                        RenderObjects.Add(specialObj);
-                    }
-
-                    // 4. Items (on top of floor, below entities)
-                    if (tile.Item != null)
-                    {
-                        var itemAsset = _assetRegistry.GetItemAsset(tile);
-                        if (!string.IsNullOrEmpty(itemAsset))
-                        {
-                            var itemObj = new RenderObjectViewModel(
-                                itemAsset,
-                                screenX + 24,
-                                screenY + 12,
-                                32,
-                                32,
-                                baseZIndex + 20,
-                                $"Item_{tile.Item.Name}_{x}_{y}",
-                                "item");
-                            RenderObjects.Add(itemObj);
-                        }
-                    }
-
-                    // 5. Enemies (sprites with height offset for perspective)
-                    if (tile.Enemy != null && tile.Enemy.IsAlive)
-                    {
-                        var enemyAsset = _assetRegistry.GetEnemyAsset(tile.Enemy);
-                        if (!string.IsNullOrEmpty(enemyAsset))
-                        {
-                            var enemyObj = new RenderObjectViewModel(
-                                enemyAsset,
-                                screenX,
-                                screenY - 36,
-                                CharacterWidth,
-                                CharacterHeight,
-                                baseZIndex + 50,
-                                $"Enemy_{tile.Enemy.Name}_{x}_{y}",
-                                "entity");
-                            RenderObjects.Add(enemyObj);
-                        }
-                    }
-
-                    // 6. NPCs (if present)
-                    if (tile.Npc != null)
-                    {
-                        var npcAsset = _assetRegistry.GetNpcAsset(tile.Npc);
-                        if (!string.IsNullOrEmpty(npcAsset))
-                        {
-                            var npcObj = new RenderObjectViewModel(
-                                npcAsset,
-                                screenX,
-                                screenY - 36,
-                                CharacterWidth,
-                                CharacterHeight,
-                                baseZIndex + 50,
-                                $"NPC_{tile.Npc.Name}_{x}_{y}",
-                                "entity");
-                            RenderObjects.Add(npcObj);
-                        }
-                    }
-
-                    // 7. Player (if on this tile)
-                    if (tile.HasPlayer)
-                    {
-                        var playerAsset = _assetRegistry.GetPlayerAsset(GameState.Player);
-                        if (!string.IsNullOrEmpty(playerAsset))
-                        {
-                            var playerObj = new RenderObjectViewModel(
-                                playerAsset,
-                                screenX,
-                                screenY - 36,
-                                CharacterWidth,
-                                CharacterHeight,
-                                baseZIndex + 50,
-                                $"Player_{x}_{y}",
-                                "player");
-                            RenderObjects.Add(playerObj);
-                        }
-                    }
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetWallAsset(tile, map),
+                        sx, sy - tileH * 0.5, tileW, tileH * 1.5, bz + 40, $"W_{x}_{y}", "wall"));
+                    continue;
                 }
+
+                // Special tile overlay — only rendered for tiles that actually have one
+                if (HasSpecialLayer(tile.TileType))
+                {
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetSpecialTileAsset(tile),
+                        sx, sy, tileW, tileH, bz + 10, $"S_{tile.TileType}_{x}_{y}", "special"));
+                }
+
+                // Item
+                if (tile.Item != null)
+                {
+                    var iSize = Math.Min(tileW, tileH) * 0.6;
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetItemAsset(tile),
+                        sx + (tileW - iSize) / 2, sy + (tileH - iSize) / 2,
+                        iSize, iSize, bz + 20, $"I_{x}_{y}", "item"));
+                }
+
+                // Enemy
+                if (tile.Enemy?.IsAlive == true)
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetEnemyAsset(tile.Enemy),
+                        sx, sy - charH + tileH, tileW, charH, bz + 50, $"E_{x}_{y}", "entity"));
+
+                // NPC
+                if (tile.Npc != null)
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetNpcAsset(tile.Npc),
+                        sx, sy - charH + tileH, tileW, charH, bz + 50, $"N_{x}_{y}", "entity"));
+
+                // Player
+                if (tile.HasPlayer)
+                    RenderObjects.Add(new RenderObjectViewModel(
+                        _assetRegistry.GetPlayerAsset(GameState.Player),
+                        sx, sy - charH + tileH, tileW, charH, bz + 60, $"P_{x}_{y}", "player"));
             }
         }
+
+        // Returns true only for tile types that have a dedicated special-layer sprite.
+        // Regular floors, walls and unrecognized types must NOT get a special overlay.
+        private static bool HasSpecialLayer(TileType t) => t is
+            TileType.LockedDoor   or TileType.Exit         or
+            TileType.ThornTrap    or TileType.CurseTrap    or TileType.LavaTrap  or
+            TileType.SpikeTrap    or TileType.DivineTrap   or
+            TileType.HealingShrine or TileType.HealingAltar or TileType.HotSpring or
+            TileType.HealingBubble or
+            TileType.Puzzle       or TileType.KeyPedestal;
     }
 }

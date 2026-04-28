@@ -8,40 +8,41 @@ namespace DungeonOfTheFallen.Core.Services
         {
             var roster = biomeType switch
             {
+                // Erster Boss: Grondak der Knochenbrecher (Ogre)
                 BiomeType.Forest => new[]
                 {
-                    EnemyFactory.Create(EnemyType.Goblin, "Goblin Stalker", floor),
-                    EnemyFactory.Create(EnemyType.Spider, "Thorn Spider", floor),
-                    EnemyFactory.Create(EnemyType.Orc, "Briar Orc", floor),
-                    EnemyFactory.Create(EnemyType.Dragon, "Ancient Forest Drake", floor)
+                    EnemyFactory.Create(EnemyType.Goblin,  "Goblin-Aufseher",           floor),
+                    EnemyFactory.Create(EnemyType.Spider,  "Dornenspinne",              floor),
+                    EnemyFactory.Create(EnemyType.Orc,     "Dickicht-Ork",              floor),
+                    EnemyFactory.Create(EnemyType.Ogre,    "Grondak der Knochenbrecher", floor)
                 },
                 BiomeType.Crypt => new[]
                 {
-                    EnemyFactory.Create(EnemyType.Skeleton, "Bone Sentinel", floor),
-                    EnemyFactory.Create(EnemyType.Zombie, "Crypt Walker", floor),
-                    EnemyFactory.Create(EnemyType.Orc, "Grave Reaver", floor),
-                    EnemyFactory.Create(EnemyType.Lich, "Lich King", floor)
+                    EnemyFactory.Create(EnemyType.Skeleton, "Knochenwächter",   floor),
+                    EnemyFactory.Create(EnemyType.Zombie,   "Gruftgänger",      floor),
+                    EnemyFactory.Create(EnemyType.Orc,      "Grabräuber",       floor),
+                    EnemyFactory.Create(EnemyType.Lich,     "Lichkönig",        floor)
                 },
                 BiomeType.Volcanic => new[]
                 {
-                    EnemyFactory.Create(EnemyType.Goblin, "Ash Goblin", floor),
-                    EnemyFactory.Create(EnemyType.Troll, "Magma Troll", floor),
-                    EnemyFactory.Create(EnemyType.Orc, "Cinder Orc", floor),
-                    EnemyFactory.Create(EnemyType.DemonLord, "Infernal Warden", floor)
+                    EnemyFactory.Create(EnemyType.Goblin,    "Aschegoblin",       floor),
+                    EnemyFactory.Create(EnemyType.Troll,     "Magmatroll",        floor),
+                    EnemyFactory.Create(EnemyType.Orc,       "Glutork",           floor),
+                    EnemyFactory.Create(EnemyType.DemonLord, "Höllenwächter",     floor)
                 },
                 BiomeType.Underwater => new[]
                 {
-                    EnemyFactory.Create(EnemyType.Spider, "Tide Spider", floor),
-                    EnemyFactory.Create(EnemyType.Zombie, "Drowned Husk", floor),
-                    EnemyFactory.Create(EnemyType.Troll, "Coral Troll", floor),
-                    EnemyFactory.Create(EnemyType.Dragon, "Leviathan Spawn", floor)
+                    EnemyFactory.Create(EnemyType.Spider, "Gezeitenspinne",  floor),
+                    EnemyFactory.Create(EnemyType.Zombie, "Ertrunkener",     floor),
+                    EnemyFactory.Create(EnemyType.Troll,  "Korallentroll",   floor),
+                    EnemyFactory.Create(EnemyType.Dragon, "Leviathan-Brut",  floor)
                 },
                 BiomeType.Celestial => new[]
                 {
-                    EnemyFactory.Create(EnemyType.Skeleton, "Fallen Sentinel", floor),
-                    EnemyFactory.Create(EnemyType.Orc, "Astral Ravager", floor),
-                    EnemyFactory.Create(EnemyType.Lich, "Radiant Lich", floor),
-                    EnemyFactory.Create(EnemyType.Boss, "Seraphic Tyrant", floor)
+                    EnemyFactory.Create(EnemyType.Skeleton, "Gefallener Wächter", floor),
+                    EnemyFactory.Create(EnemyType.Orc,      "Astraler Verwüster", floor),
+                    EnemyFactory.Create(EnemyType.Dragon,   "Sternendrache",      floor),
+                    EnemyFactory.Create(EnemyType.Boss,     "Himmelsfürst",       floor)
                 },
                 _ => throw new ArgumentOutOfRangeException(nameof(biomeType), biomeType, null)
             };

@@ -52,17 +52,38 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         }
 
         /// <summary>
-        /// Gets the wall asset for a given tile.
-        /// Returns appropriate wall orientation if available.
+        /// Gets the wall asset for a given tile, choosing the correct orientation based on neighbors.
         /// </summary>
         public string GetWallAsset(Tile tile, DungeonMap? map = null)
         {
             if (tile?.TileType != TileType.Wall)
                 return MissingAssetPath;
 
-            // For now, return a single wall asset. Could be extended with orientation detection.
+            if (map == null)
+                return "/Assets/Tiles/StoneDungeon/Walls/wall_back_01.png";
+
+            var floorN = !IsWallOrNull(map.GetTile(tile.X, tile.Y - 1));
+            var floorS = !IsWallOrNull(map.GetTile(tile.X, tile.Y + 1));
+            var floorW = !IsWallOrNull(map.GetTile(tile.X - 1, tile.Y));
+            var floorE = !IsWallOrNull(map.GetTile(tile.X + 1, tile.Y));
+
+            // Corners: two open sides → pick the matching corner sprite
+            if (floorS && floorE) return "/Assets/Tiles/StoneDungeon/Walls/wall_corner_tl_01.png";
+            if (floorS && floorW) return "/Assets/Tiles/StoneDungeon/Walls/wall_corner_tr_01.png";
+            if (floorN && floorE) return "/Assets/Tiles/StoneDungeon/Walls/wall_corner_bl_01.png";
+            if (floorN && floorW) return "/Assets/Tiles/StoneDungeon/Walls/wall_corner_br_01.png";
+
+            // Straight walls
+            if (floorS) return "/Assets/Tiles/StoneDungeon/Walls/wall_back_01.png";
+            if (floorN) return "/Assets/Tiles/StoneDungeon/Walls/wall_front_01.png";
+            if (floorE) return "/Assets/Tiles/StoneDungeon/Walls/wall_left_01.png";
+            if (floorW) return "/Assets/Tiles/StoneDungeon/Walls/wall_right_01.png";
+
             return "/Assets/Tiles/StoneDungeon/Walls/wall_back_01.png";
         }
+
+        private static bool IsWallOrNull(Tile? t) =>
+            t == null || t.TileType == TileType.Wall;
 
         /// <summary>
         /// Gets the asset for an entity on a tile (Enemy or NPC).
@@ -134,7 +155,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
         }
 
         /// <summary>
-        /// Gets the asset for an enemy.
+        /// Gets the asset for an enemy. Each enemy type has its own planned path.
+        /// Missing files fall back to missing_asset.png via FallbackImageConverter.
         /// </summary>
         public string GetEnemyAsset(Enemy? enemy)
         {
@@ -142,27 +164,39 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
 
             return enemy.EnemyType switch
             {
-                EnemyType.Goblin => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
-                EnemyType.Spider => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
-                EnemyType.Skeleton => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
-                EnemyType.Orc => "/Assets/Characters/Orc/orc_idle_down_00.png",
-                EnemyType.Zombie => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
-                EnemyType.Troll => "/Assets/Characters/Orc/orc_idle_down_00.png",
-                EnemyType.Dragon => "/Assets/Characters/Boss/boss_idle_down_00.png",
-                EnemyType.DemonLord => "/Assets/Characters/Boss/boss_idle_down_00.png",
-                EnemyType.Lich => "/Assets/Characters/Boss/boss_idle_down_00.png",
-                EnemyType.Boss => "/Assets/Characters/Boss/boss_idle_down_00.png",
-                _ => MissingAssetPath
+                EnemyType.Goblin    => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
+                EnemyType.Spider    => "/Assets/Characters/Spider/spider_idle_down_00.png",
+                EnemyType.Skeleton  => "/Assets/Characters/Skeleton/skeleton_idle_down_00.png",
+                EnemyType.Orc       => "/Assets/Characters/Orc/orc_idle_down_00.png",
+                EnemyType.Zombie    => "/Assets/Characters/Zombie/zombie_idle_down_00.png",
+                EnemyType.Troll     => "/Assets/Characters/Troll/troll_idle_down_00.png",
+                EnemyType.Ogre      => "/Assets/Characters/Ogre/ogre_idle_down_00.png",
+                EnemyType.Dragon    => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
+                EnemyType.DemonLord => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
+                EnemyType.Lich      => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
+                EnemyType.Boss      => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
+                _                   => MissingAssetPath
             };
         }
 
         /// <summary>
-        /// Gets the asset for an NPC.
+        /// Gets the asset for an NPC. Each NPC type has its own planned path.
+        /// Missing files fall back to missing_asset.png via FallbackImageConverter.
         /// </summary>
         public string GetNpcAsset(Npc? npc)
         {
             if (npc == null) return MissingAssetPath;
-            return "/Assets/Characters/Goblin/goblin_idle_down_00.png";
+
+            return npc.NpcType switch
+            {
+                NpcType.Healer      => "/Assets/Characters/NPC/npc_healer_idle_down_00.png",
+                NpcType.Merchant    => "/Assets/Characters/NPC/npc_merchant_idle_down_00.png",
+                NpcType.Chronicler  => "/Assets/Characters/NPC/npc_chronicler_idle_down_00.png",
+                NpcType.Blacksmith  => "/Assets/Characters/NPC/npc_blacksmith_idle_down_00.png",
+                NpcType.Scout       => "/Assets/Characters/NPC/npc_scout_idle_down_00.png",
+                NpcType.Mystic      => "/Assets/Characters/NPC/npc_mystic_idle_down_00.png",
+                _                   => MissingAssetPath
+            };
         }
 
         /// <summary>

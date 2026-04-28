@@ -62,6 +62,10 @@
         <Border BorderBrush="#1a2a3a" BorderThickness="1" CornerRadius="8">
 
             <Grid>
+                <!-- Background image -->
+                <Image Source="/Assets/Backgrounds/background_menu_dungeon_01.png"
+                       Stretch="UniformToFill" Opacity="0.22"/>
+
                 <!-- Decorative top/bottom bars -->
                 <Border Height="3" VerticalAlignment="Top" CornerRadius="8,8,0,0">
                     <Border.Background>

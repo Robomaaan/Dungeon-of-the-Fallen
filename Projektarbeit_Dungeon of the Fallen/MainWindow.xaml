@@ -71,7 +71,7 @@
         <Border Grid.Column="1" Grid.Row="1" Background="#111111" Margin="0,10,10,10"
                 BorderThickness="2" BorderBrush="#555">
             <StackPanel Margin="12" VerticalAlignment="Top">
-                <TextBlock Text="⚡ PLAYER STATUS" FontSize="16" FontWeight="Bold"
+                <TextBlock Text="⚡ SPIELERSTATUS" FontSize="16" FontWeight="Bold"
                            Foreground="#FFD700" Margin="0,0,0,12" />
 
                 <!-- HP -->
@@ -88,19 +88,19 @@
                 <TextBlock Foreground="#ffffff" FontSize="20" FontWeight="Bold"
                            Text="{Binding PlayerViewModel.Level}" />
 
-                <TextBlock Text="CLASS" Foreground="#AA88FF" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
+                <TextBlock Text="KLASSE" Foreground="#AA88FF" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
                 <TextBlock Foreground="#d6c7ff" FontSize="14" FontWeight="Bold"
                            Text="{Binding PlayerViewModel.PlayerClassDisplay}" />
 
-                <TextBlock Text="FLOOR" Foreground="#FFA94D" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
+                <TextBlock Text="EBENE" Foreground="#FFA94D" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
                 <TextBlock Foreground="#ffd3a1" FontSize="14" FontWeight="Bold"
                            Text="{Binding FloorDisplay}" />
 
-                <TextBlock Text="BIOME" Foreground="#66CCFF" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
+                <TextBlock Text="BIOTOP" Foreground="#66CCFF" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
                 <TextBlock Foreground="#b7e7ff" FontSize="14" FontWeight="Bold"
                            Text="{Binding BiomeDisplayName}" />
 
-                <TextBlock Text="OBJECTIVE" Foreground="#7bf0c8" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
+                <TextBlock Text="ZIEL" Foreground="#7bf0c8" FontWeight="Bold" FontSize="12" Margin="0,8,0,2" />
                 <TextBlock Foreground="#c5fff0" FontSize="11" FontWeight="Bold" TextWrapping="Wrap"
                            Text="{Binding ObjectiveText}" />
                 <TextBlock Foreground="#9ce6d3" FontSize="10" Margin="0,2,0,0"
@@ -116,28 +116,31 @@
 
                 <Separator Background="#333" Margin="0,10" />
 
-                <TextBlock Text="STATS" Foreground="#00AAFF" FontWeight="Bold" FontSize="12" Margin="0,2,0,4" />
+                <TextBlock Text="WERTE" Foreground="#00AAFF" FontWeight="Bold" FontSize="12" Margin="0,2,0,4" />
                 <TextBlock Foreground="#ccddff" FontSize="12"
-                           Text="{Binding PlayerViewModel.Attack, StringFormat='🎯 Attack Bonus: +{0}'}" />
+                           Text="{Binding PlayerViewModel.Attack, StringFormat='🎯 Angriffswert: +{0}'}" />
                 <TextBlock Foreground="#ccddff" FontSize="12" Margin="0,2"
-                           Text="{Binding PlayerViewModel.ArmorClass, StringFormat='🛡  Armor Class: {0}'}" />
+                           Text="{Binding PlayerViewModel.ArmorClass, StringFormat='🛡  Rüstungsklasse: {0}'}" />
                 <TextBlock Foreground="#ccddff" FontSize="11" Margin="0,2,0,0"
-                           Text="{Binding PlayerViewModel.WeaponName, StringFormat='⚔  Weapon: {0}'}" />
+                           Text="{Binding PlayerViewModel.WeaponName, StringFormat='⚔  Waffe: {0}'}" />
                 <TextBlock Foreground="#ccddff" FontSize="10"
-                           Text="{Binding PlayerViewModel.WeaponDamage, StringFormat='Damage: {0}'}" />
+                           Text="{Binding PlayerViewModel.WeaponDamage, StringFormat='Schaden: {0}'}" />
                 <TextBlock Foreground="#f3d6ff" FontSize="12" Margin="0,4,0,0"
-                           Text="{Binding PlayerViewModel.SkillName, StringFormat='✨ Skill: {0}'}" />
+                           Text="{Binding PlayerViewModel.SkillName, StringFormat='✨ Fähigkeit: {0}'}" />
                 <TextBlock Foreground="#b8a1c9" FontSize="10" TextWrapping="Wrap"
                            Text="{Binding PlayerViewModel.SkillDescription}" />
+
+                <TextBlock Foreground="#88ddff" FontSize="10" Margin="0,2,0,0"
+                           Text="{Binding PlayerViewModel.ArmorSummary, StringFormat='🛡 {0}'}"/>
 
                 <Separator Background="#333" Margin="0,10" />
 
                 <!-- Tränke -->
-                <TextBlock Text="POTIONS" Foreground="#FF88FF" FontWeight="Bold" FontSize="12" Margin="0,2,0,6" />
+                <TextBlock Text="TRÄNKE" Foreground="#FF88FF" FontWeight="Bold" FontSize="12" Margin="0,2,0,6" />
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Foreground="#FF88FF" FontSize="18" FontWeight="Bold"
                                Text="{Binding PlayerViewModel.PotionCount}" VerticalAlignment="Center" />
-                    <Button Content="Use [P]" Command="{Binding UsePotionCommand}"
+                    <Button Content="Nutzen [P]" Command="{Binding UsePotionCommand}"
                             FontSize="11" Foreground="#FF88FF" Background="#2a1a2a"
                             BorderBrush="#FF88FF" BorderThickness="1"
                             Padding="6,2" Margin="8,0,0,0" Cursor="Hand" />
@@ -145,7 +148,7 @@
 
                 <Separator Background="#333" Margin="0,12" />
 
-                <TextBlock Text="RUN STATUS" Foreground="#888" FontWeight="Bold" FontSize="11" Margin="0,0,0,4" />
+                <TextBlock Text="LAUFSTATUS" Foreground="#888" FontWeight="Bold" FontSize="11" Margin="0,0,0,4" />
                 <TextBlock Foreground="#cccccc" FontSize="10" TextWrapping="Wrap"
                            Text="{Binding RunStatusText}" />
                 <TextBlock Foreground="#9cc8ff" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0"
@@ -162,15 +165,15 @@
                         <Run Foreground="#c7a6ff">N</Run><Run> = NPC</Run>
                     </TextBlock>
                     <TextBlock FontSize="10" Foreground="#aaa">
-                        <Run Foreground="#FFD700">E</Run><Run> = Exit    </Run>
+                        <Run Foreground="#FFD700">E</Run><Run> = Ausgang    </Run>
                         <Run Foreground="#88aaff">I</Run><Run> = Item    </Run>
-                        <Run Foreground="#7b5a30">D</Run><Run> = Door</Run>
+                        <Run Foreground="#7b5a30">D</Run><Run> = Tür</Run>
                     </TextBlock>
                     <TextBlock FontSize="10" Foreground="#aaa">
                         <Run Foreground="#0088FF">~</Run><Run> = Heilraum    </Run>
                         <Run Foreground="#AA0000">!</Run><Run> = Falle    </Run>
-                        <Run Foreground="#5a4fcf">?</Run><Run> = Puzzle    </Run>
-                        <Run Foreground="#346b7a">K</Run><Run> = Key</Run>
+                        <Run Foreground="#5a4fcf">?</Run><Run> = Rätsel    </Run>
+                        <Run Foreground="#346b7a">K</Run><Run> = Schlüssel</Run>
                     </TextBlock>
                 </StackPanel>
 
@@ -188,6 +191,23 @@
                             BorderBrush="#8888FF" BorderThickness="1"
                             Padding="6,3" Margin="6,0,0,0" Cursor="Hand" />
                 </StackPanel>
+
+                <Separator Background="#333" Margin="0,12" />
+
+                <!-- Menü-Navigation -->
+                <TextBlock Text="MENÜ / RUN" Foreground="#888" FontWeight="Bold" FontSize="11" Margin="0,0,0,6" />
+                <Button Content="💾  Speichern &amp; Hauptmenü" Command="{Binding SaveAndReturnToMenuCommand}"
+                        FontSize="11" Foreground="#FFD700" Background="#1a1a0a"
+                        BorderBrush="#FFD700" BorderThickness="1"
+                        Padding="6,4" Cursor="Hand" Margin="0,0,0,5" HorizontalAlignment="Stretch"/>
+                <Button Content="🏠  Hauptmenü (ohne Speichern)" Command="{Binding ReturnToMenuCommand}"
+                        FontSize="11" Foreground="#AAAAAA" Background="#111111"
+                        BorderBrush="#555555" BorderThickness="1"
+                        Padding="6,4" Cursor="Hand" Margin="0,0,0,5" HorizontalAlignment="Stretch"/>
+                <Button Content="✕  Run abbrechen" Command="{Binding AbandonRunCommand}"
+                        FontSize="11" Foreground="#FF6666" Background="#1a0a0a"
+                        BorderBrush="#AA3333" BorderThickness="1"
+                        Padding="6,4" Cursor="Hand" HorizontalAlignment="Stretch"/>
             </StackPanel>
         </Border>
 

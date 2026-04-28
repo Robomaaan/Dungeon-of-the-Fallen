@@ -7,10 +7,18 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
     public enum CombatPhase
     {
         PlayerTurn,
-        PlayerRolling,
-        EnemyRolling,
+        BothRolling,    // Spieler + Gegner gleichzeitig (Angriff / Skill)
+        EnemyRolling,   // Gegner-Würfel allein (Trank-Gegenzug)
         Victory,
         Defeat
+    }
+
+    public enum WinningSide
+    {
+        None,
+        Player,
+        Enemy,
+        Tie
     }
 
     public class CombatViewModel : ViewModelBase
@@ -26,7 +34,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private int _enemyDiceValue;
         private string _combatLog = string.Empty;
         private string _statusMessage = string.Empty;
+        private string _diceResultText = string.Empty;
+        private WinningSide _diceWinner = WinningSide.None;
+        private bool _isDiceAnimationRunning;
         private CombatActionType _pendingAction = CombatActionType.Attack;
+        private CombatTurnResult? _pendingCombatResult;
 
         public string PlayerName => _gameState.Player.Name;
         public int PlayerHP => _gameState.Player.HP;
@@ -60,9 +72,28 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public bool IsVictory => _phase == CombatPhase.Victory;
 
         public int PlayerDiceValue { get => _playerDiceValue; private set => SetProperty(ref _playerDiceValue, value); }
-        public int EnemyDiceValue { get => _enemyDiceValue; private set => SetProperty(ref _enemyDiceValue, value); }
-        public string CombatLog { get => _combatLog; private set => SetProperty(ref _combatLog, value); }
-        public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
+        public int EnemyDiceValue  { get => _enemyDiceValue;  private set => SetProperty(ref _enemyDiceValue,  value); }
+        public string CombatLog    { get => _combatLog;       private set => SetProperty(ref _combatLog,       value); }
+        public string StatusMessage{ get => _statusMessage;   private set => SetProperty(ref _statusMessage,   value); }
+        public string DiceResultText { get => _diceResultText; private set => SetProperty(ref _diceResultText, value); }
+
+        public WinningSide DiceWinner
+        {
+            get => _diceWinner;
+            private set
+            {
+                SetProperty(ref _diceWinner, value);
+                OnPropertyChanged(nameof(PlayerDiceWon), nameof(EnemyDiceWon));
+            }
+        }
+        public bool PlayerDiceWon => _diceWinner == WinningSide.Player || _diceWinner == WinningSide.Tie;
+        public bool EnemyDiceWon  => _diceWinner == WinningSide.Enemy  || _diceWinner == WinningSide.Tie;
+
+        public bool IsDiceAnimationRunning
+        {
+            get => _isDiceAnimationRunning;
+            set => SetProperty(ref _isDiceAnimationRunning, value);
+        }
 
         public bool HasPotions => _gameState.Player.Inventory.Items.Any(i => i.ItemType == ItemType.Potion);
         public int PotionCount => _gameState.Player.Inventory.Items.Count(i => i.ItemType == ItemType.Potion);
@@ -72,6 +103,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public ICommand UsePotionCommand { get; }
         public ICommand UseSkillCommand { get; }
 
+        /// <summary>Beide Würfel starten gleichzeitig (Angriff / Skill).</summary>
+        public event Action<int, int>? DiceBattleStarted;
+
+        /// <summary>Nur Gegner-Würfel (Trank-Gegenzug).</summary>
         public event Action<int, bool>? DiceRollStarted;
 
         public CombatViewModel(GameState gameState, Enemy enemy)
@@ -92,11 +127,37 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             if (!IsPlayerTurn) return;
             _pendingAction = actionType;
-            Phase = CombatPhase.PlayerRolling;
-            StatusMessage = actionType == CombatActionType.UseSkill ? $"{SkillName} wird vorbereitet..." : "Du würfelst 1d20 auf Treffer...";
-            var roll = _combatService.RollDice();
-            PlayerDiceValue = roll;
-            DiceRollStarted?.Invoke(roll, true);
+
+            var playerRoll = _combatService.RollDice();
+            var enemyRoll  = _combatService.RollDice();
+            var result     = _combatService.ExecuteCombat(_enemy, actionType, playerRoll, enemyRoll);
+
+            _pendingCombatResult = result;
+            PlayerDiceValue = playerRoll;
+            EnemyDiceValue  = enemyRoll;
+
+            DiceWinner = playerRoll > enemyRoll ? WinningSide.Player
+                       : playerRoll < enemyRoll ? WinningSide.Enemy
+                       : WinningSide.Tie;
+            DiceResultText = DiceWinner switch
+            {
+                WinningSide.Player => $"Spielerwürfel ({playerRoll}) schlägt Gegnerwürfel ({enemyRoll})!",
+                WinningSide.Enemy  => $"Gegnerwürfel ({enemyRoll}) schlägt Spielerwürfel ({playerRoll})!",
+                WinningSide.Tie    => $"Gleichstand! Beide würfeln {playerRoll}.",
+                _                  => string.Empty
+            };
+
+            Phase = CombatPhase.BothRolling;
+            StatusMessage = actionType == CombatActionType.UseSkill
+                ? $"{SkillName} – Würfel fliegen!"
+                : "Würfel fliegen!";
+
+            System.Diagnostics.Debug.WriteLine("[DiceBattle] Start");
+            System.Diagnostics.Debug.WriteLine($"[DiceBattle] PlayerRoll={playerRoll}");
+            System.Diagnostics.Debug.WriteLine($"[DiceBattle] EnemyRoll={enemyRoll}");
+            System.Diagnostics.Debug.WriteLine($"[DiceBattle] Result={DiceWinner}");
+
+            DiceBattleStarted?.Invoke(playerRoll, enemyRoll);
         }
 
         private void StartPotionTurn()
@@ -110,23 +171,29 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 return;
 
             EnemyDiceValue = result.EnemyRoll;
-            Phase = CombatPhase.EnemyRolling;
-            StatusMessage = $"{_enemy.Name} würfelt auf Gegenangriff...";
+            Phase          = CombatPhase.EnemyRolling;
+            StatusMessage  = $"{_enemy.Name} würfelt auf Gegenangriff...";
             DiceRollStarted?.Invoke(result.EnemyRoll, false);
         }
 
-        public void OnPlayerDiceAnimationComplete()
+        /// <summary>Wird nach Abschluss der simultanen Würfelanimation aufgerufen.</summary>
+        public void OnDiceBattleAnimationComplete()
         {
-            var result = _combatService.ExecuteCombat(_enemy, _pendingAction, PlayerDiceValue);
-            ApplyCombatResult(result);
+            System.Diagnostics.Debug.WriteLine("[DiceAnimation] Finished");
+            System.Diagnostics.Debug.WriteLine("[DiceAnimation] Next state released");
 
-            if (result.PlayerDefeated || result.EnemyDefeated)
-                return;
+            if (_pendingCombatResult != null)
+            {
+                ApplyCombatResult(_pendingCombatResult);
+                _pendingCombatResult = null;
+            }
 
-            EnemyDiceValue = result.EnemyRoll;
-            Phase = CombatPhase.EnemyRolling;
-            StatusMessage = $"{_enemy.Name} würfelt zurück...";
-            DiceRollStarted?.Invoke(result.EnemyRoll, false);
+            if (!IsGameOver)
+            {
+                Phase = CombatPhase.PlayerTurn;
+                StatusMessage = $"Dein Zug! Würfle gegen AC {_enemy.ArmorClass}.";
+                NotifyStats();
+            }
         }
 
         public void OnEnemyDiceAnimationComplete()
@@ -147,6 +214,26 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void ApplyCombatResult(CombatTurnResult result)
         {
+            // Würfelvergleich: rohes d20-Ergebnis bestimmt visuellen Gewinner
+            if (result.PlayerRoll > 0 && result.EnemyRoll > 0)
+            {
+                DiceWinner = result.PlayerRoll > result.EnemyRoll ? WinningSide.Player
+                           : result.PlayerRoll < result.EnemyRoll ? WinningSide.Enemy
+                           : WinningSide.Tie;
+                DiceResultText = DiceWinner switch
+                {
+                    WinningSide.Player => $"Spielerwürfel ({result.PlayerRoll}) schlägt Gegnerwürfel ({result.EnemyRoll})!",
+                    WinningSide.Enemy  => $"Gegnerwürfel ({result.EnemyRoll}) schlägt Spielerwürfel ({result.PlayerRoll})!",
+                    WinningSide.Tie    => $"Gleichstand! Beide würfeln {result.PlayerRoll}.",
+                    _                  => string.Empty
+                };
+            }
+            else
+            {
+                DiceWinner = WinningSide.None;
+                DiceResultText = string.Empty;
+            }
+
             if (result.PlayerUsedPotion)
                 AddLog($"Du benutzt {result.UsedPotionName}: +{result.HealingDone} HP!");
 
@@ -208,7 +295,14 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void NotifyStats()
         {
-            OnPropertyChanged(nameof(PlayerHP), nameof(EnemyHP), nameof(HasPotions), nameof(PotionCount), nameof(PotionButtonText), nameof(SkillName), nameof(SkillDescription), nameof(SkillButtonText), nameof(PlayerArmorClass), nameof(EnemyArmorClass), nameof(PlayerWeapon), nameof(EnemyWeapon));
+            OnPropertyChanged(
+                nameof(PlayerHP), nameof(EnemyHP),
+                nameof(HasPotions), nameof(PotionCount), nameof(PotionButtonText),
+                nameof(SkillName), nameof(SkillDescription), nameof(SkillButtonText),
+                nameof(PlayerArmorClass), nameof(EnemyArmorClass),
+                nameof(PlayerWeapon), nameof(EnemyWeapon),
+                nameof(PlayerDiceValue), nameof(EnemyDiceValue),
+                nameof(DiceResultText), nameof(DiceWinner), nameof(PlayerDiceWon), nameof(EnemyDiceWon));
         }
     }
 }

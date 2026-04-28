@@ -19,7 +19,15 @@ namespace DungeonOfTheFallen.Core.Models
         public int Defense { get => Stats.ArmorClass; set => Stats.ArmorClass = value; }
         public WeaponProfile Weapon { get => Stats.Weapon; set => Stats.Weapon = value; }
         public DamageModifierSet DamageModifiers { get => Stats.DamageModifiers; set => Stats.DamageModifiers = value; }
-        public int ArmorClass => Defense + Weapon.ArmorClassBonus;
+
+        // Ausgerüstete Rüstungsstücke (Slot → Profil)
+        public Dictionary<EquipmentSlot, ArmorProfile> EquippedArmor { get; set; } = new();
+
+        // Gesamte Rüstungsklasse: Basis + Waffe + ausgerüstete Rüstung
+        public int ArmorClass => Defense + Weapon.ArmorClassBonus + EquippedArmor.Values.Sum(a => a.ArmorValue);
+
+        // Summe der Rüstungswerte aller ausgerüsteten Teile
+        public int TotalArmorValue => EquippedArmor.Values.Sum(a => a.ArmorValue);
 
         public Player(string name = "Hero")
         {

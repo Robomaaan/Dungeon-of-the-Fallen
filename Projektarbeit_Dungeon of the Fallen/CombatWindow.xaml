@@ -1,7 +1,7 @@
 <Window x:Class="Projektarbeit_Dungeon_of_the_Fallen.CombatWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="⚔ Kampf" Height="700" Width="960"
+        Title="⚔ Kampf" Height="780" Width="960"
         Background="#060a10" Foreground="#e0e0e0"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
@@ -52,6 +52,11 @@
                                 <Setter Property="Background" Value="#2a2a4a"/>
                                 <Setter Property="BorderBrush" Value="#FFE040"/>
                             </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#3a3a6a"/>
+                                <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                                <Setter Property="Opacity" Value="0.85"/>
+                            </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.35"/>
                             </Trigger>
@@ -65,9 +70,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="44"/>   <!-- Header -->
-            <RowDefinition Height="330"/>  <!-- Battle arena -->
+            <RowDefinition Height="420"/>  <!-- Battle arena (größer) -->
             <RowDefinition Height="*"/>    <!-- Actions -->
-            <RowDefinition Height="110"/>  <!-- Log -->
+            <RowDefinition Height="100"/>  <!-- Log -->
         </Grid.RowDefinitions>
 
         <!-- ═══ HEADER ═══ -->
@@ -81,7 +86,6 @@
 
         <!-- ═══ BATTLE ARENA ═══ -->
         <Grid Grid.Row="1">
-            <!-- Dungeon floor background -->
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                     <GradientStop Color="#050810" Offset="0"/>
@@ -90,8 +94,12 @@
                 </LinearGradientBrush>
             </Grid.Background>
 
+            <!-- Background image -->
+            <Image Source="/Assets/Backgrounds/background_combat_dungeon_01.png"
+                   Stretch="UniformToFill" Opacity="0.35"/>
+
             <!-- Floor hint -->
-            <Rectangle VerticalAlignment="Bottom" Height="40" Opacity="0.35">
+            <Rectangle VerticalAlignment="Bottom" Height="50" Opacity="0.35">
                 <Rectangle.Fill>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                         <GradientStop Color="#1a1a3a" Offset="0"/>
@@ -100,104 +108,128 @@
                 </Rectangle.Fill>
             </Rectangle>
 
-            <!-- Enemy area: top-right -->
+            <!-- Enemy stats: top-right -->
             <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Margin="30,16,50,0" Width="240">
+                        Margin="30,14,50,0" Width="250">
                 <TextBlock Text="{Binding EnemyName, Mode=OneWay}"
-                           FontSize="15" FontWeight="Bold" Foreground="#FF7777"
+                           FontSize="16" FontWeight="Bold" Foreground="#FF7777"
                            Margin="0,0,0,4"/>
                 <ProgressBar Value="{Binding EnemyHP, Mode=OneWay}" Maximum="{Binding EnemyMaxHP}"
-                             Width="240" Style="{StaticResource HpBarStyle}"
+                             Width="250" Style="{StaticResource HpBarStyle}"
                              Foreground="#FF4444"/>
-                <TextBlock Foreground="#888" FontSize="11" Margin="0,2">
+                <TextBlock Foreground="#888" FontSize="12" Margin="0,2">
                     <Run Text="{Binding EnemyHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding EnemyMaxHP, Mode=OneWay}"/>
                     <Run Text=" HP · AC "/>
                     <Run Text="{Binding EnemyArmorClass, Mode=OneWay}"/>
                 </TextBlock>
-                <TextBlock Foreground="#b0b0b0" FontSize="10" TextWrapping="Wrap"
+                <TextBlock Foreground="#b0b0b0" FontSize="11" TextWrapping="Wrap"
                            Text="{Binding EnemyWeapon, Mode=OneWay}"/>
             </StackPanel>
 
-            <!-- Enemy sprite: top-right, "behind" -->
+            <!-- Enemy sprite: top-right -->
             <Canvas x:Name="EnemySpriteCanvas"
-                    Width="130" Height="160"
+                    Width="190" Height="260"
                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Margin="0,60,40,0"/>
+                    Margin="0,80,40,0"/>
 
-            <!-- Player area: bottom-left -->
+            <!-- Player stats: bottom-left -->
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                        Margin="50,0,0,16" Width="240">
+                        Margin="50,0,0,14" Width="250">
                 <TextBlock Text="{Binding PlayerName, Mode=OneWay}"
-                           FontSize="15" FontWeight="Bold" Foreground="#66BBFF"
+                           FontSize="16" FontWeight="Bold" Foreground="#66BBFF"
                            Margin="0,0,0,4"/>
                 <ProgressBar Value="{Binding PlayerHP, Mode=OneWay}" Maximum="{Binding PlayerMaxHP}"
-                             Width="240" Style="{StaticResource HpBarStyle}"
+                             Width="250" Style="{StaticResource HpBarStyle}"
                              Foreground="#44CC66"/>
-                <TextBlock Foreground="#888" FontSize="11" Margin="0,2">
+                <TextBlock Foreground="#888" FontSize="12" Margin="0,2">
                     <Run Text="{Binding PlayerHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding PlayerMaxHP, Mode=OneWay}"/>
                     <Run Text=" HP · AC "/>
                     <Run Text="{Binding PlayerArmorClass, Mode=OneWay}"/>
                 </TextBlock>
-                <TextBlock Foreground="#b0b0b0" FontSize="10" TextWrapping="Wrap"
+                <TextBlock Foreground="#b0b0b0" FontSize="11" TextWrapping="Wrap"
                            Text="{Binding PlayerWeapon, Mode=OneWay}"/>
             </StackPanel>
 
-            <!-- Player sprite: bottom-left, "in front" -->
+            <!-- Player sprite: bottom-left -->
             <Canvas x:Name="PlayerSpriteCanvas"
-                    Width="110" Height="160"
+                    Width="190" Height="260"
                     HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                    Margin="40,0,0,55"/>
+                    Margin="40,0,0,70"/>
 
-            <!-- DICE AREA: center -->
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Margin="0,20,0,0">
-                <TextBlock x:Name="DiceLabel" Text=""
-                           FontSize="13" Foreground="#aaa" TextAlignment="Center"
-                           Margin="0,0,0,8"/>
+            <!-- ═══ DICE ARENA ═══
+                 Canvas 680 px breit, zentriert.
+                 PlayerDie: Canvas.Left=60  → center bei 120 → Kollision: +160px TranslateX
+                 EnemyDie:  Canvas.Left=500 → center bei 560 → Kollision: -160px TranslateX
+                 Kollisionspunkt: Mitte des Canvas = 340 px
+            -->
+            <Canvas HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="680" Height="200"
+                    IsHitTestVisible="False">
 
-                <!-- Die face -->
-                <Border x:Name="DieBorder"
-                        Width="90" Height="90"
-                        Background="White"
-                        BorderBrush="#FFD700" BorderThickness="4"
-                        CornerRadius="10"
-                        HorizontalAlignment="Center">
+                <!-- Statuslabel oben -->
+                <TextBlock x:Name="DiceLabel"
+                           Canvas.Left="0" Canvas.Top="2"
+                           Width="680" TextAlignment="Center"
+                           FontSize="13" Foreground="#aaaaaa" FontFamily="Consolas"/>
+
+                <!-- Spieler-Würfel (links) -->
+                <Border x:Name="PlayerDieBorder"
+                        Width="120" Height="120"
+                        Canvas.Left="60" Canvas.Top="28"
+                        Background="Transparent"
+                        BorderBrush="Transparent" BorderThickness="0"
+                        Visibility="Hidden">
                     <Border.RenderTransformOrigin>0.5,0.5</Border.RenderTransformOrigin>
                     <Border.RenderTransform>
                         <TransformGroup>
-                            <ScaleTransform x:Name="DiceScale" ScaleX="1" ScaleY="1"/>
-                            <RotateTransform x:Name="DiceRotate" Angle="0"/>
-                            <TranslateTransform x:Name="DiceTranslate" Y="0"/>
+                            <ScaleTransform x:Name="PlayerDiceScale" ScaleX="1" ScaleY="1"/>
+                            <RotateTransform x:Name="PlayerDiceRotate" Angle="0"/>
+                            <TranslateTransform x:Name="PlayerDiceTranslate" X="0" Y="0"/>
                         </TransformGroup>
                     </Border.RenderTransform>
-
-                    <!-- Dice dots: 7 positions (TL TC TR ML C MR BL BC BR) -->
-                    <Canvas Width="90" Height="90">
-                        <Ellipse x:Name="Dot_TL" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="13" Canvas.Top="13" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_TR" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="63" Canvas.Top="13" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_ML" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="13" Canvas.Top="38" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_C"  Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="38" Canvas.Top="38" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_MR" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="63" Canvas.Top="38" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_BL" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="13" Canvas.Top="63" Visibility="Collapsed"/>
-                        <Ellipse x:Name="Dot_BR" Width="14" Height="14" Fill="#1a1a1a"
-                                 Canvas.Left="63" Canvas.Top="63" Visibility="Collapsed"/>
-                    </Canvas>
+                    <Image x:Name="PlayerDiceImage"
+                           Width="120" Height="120" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
 
-                <TextBlock x:Name="DiceResultLabel" Text=""
-                           FontSize="12" Foreground="#FFD700" TextAlignment="Center"
-                           FontWeight="Bold" Margin="0,6,0,0"/>
-            </StackPanel>
+                <!-- Gegner-Würfel (rechts) -->
+                <Border x:Name="EnemyDieBorder"
+                        Width="120" Height="120"
+                        Canvas.Left="500" Canvas.Top="28"
+                        Background="Transparent"
+                        BorderBrush="Transparent" BorderThickness="0"
+                        Visibility="Hidden">
+                    <Border.RenderTransformOrigin>0.5,0.5</Border.RenderTransformOrigin>
+                    <Border.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="EnemyDiceScale" ScaleX="1" ScaleY="1"/>
+                            <RotateTransform x:Name="EnemyDiceRotate" Angle="0"/>
+                            <TranslateTransform x:Name="EnemyDiceTranslate" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Border.RenderTransform>
+                    <Image x:Name="EnemyDiceImage"
+                           Width="120" Height="120" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                </Border>
+
+                <!-- Ergebnis-Zeile -->
+                <TextBlock x:Name="DiceResultLabel"
+                           Canvas.Left="0" Canvas.Top="156"
+                           Width="680" TextAlignment="Center"
+                           FontSize="13" FontWeight="Bold" Foreground="#FFD700"
+                           FontFamily="Consolas"/>
+
+                <!-- Vergleichs-Zeile -->
+                <TextBlock x:Name="DiceCompareLabel"
+                           Canvas.Left="140" Canvas.Top="175"
+                           Width="400" TextAlignment="Center"
+                           FontSize="10" Foreground="#cccccc"
+                           TextWrapping="Wrap" FontFamily="Consolas"/>
+            </Canvas>
         </Grid>
 
         <!-- ═══ ACTION PANEL ═══ -->

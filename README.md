@@ -34,7 +34,7 @@ Projektarbeit_Dungeon of the Fallen/
 │   │   ├── Tile.cs & DungeonMap.cs        # Dungeon-Grid-Logik
 │   │   ├── Item.cs, Potion.cs             # Loot & Inventar
 │   │   ├── TileType.cs                    # Floor, Wall, Exit, Spawn, Trap, HealingRoom
-│   │   ├── EnemyType.cs                   # Goblin, Orc, Boss
+│   │   ├── EnemyType.cs                   # Goblin, Spider, Skeleton, Orc, Zombie, Troll, Ogre, Dragon, DemonLord, Lich, Boss
 │   │   └── ItemType.cs                    # Gold, Potion, Key
 │   │
 │   ├── Services/                          # Game Services
@@ -120,7 +120,7 @@ Der aktuelle Branch enthält den kompletten spielbaren MVP.
 | 20x20 Dungeon-Grid | ✅ |
 | Spielerfigur sichtbar | ✅ |
 | Spieler-Bewegung | ✅ |
-| Gegner (Goblins, Orc, Boss) | ✅ |
+| Gegner (biomabhängige Gegner- und Bossliste) | ✅ |
 | Gegner-KI | ✅ |
 | Rundenbasierte Züge | ✅ |
 | Direkter Kampf | ✅ |
@@ -219,8 +219,22 @@ Der aktuelle Stand wurde intern auf eine erweiterbare Foundation vorbereitet:
 - `CombatTurnResult` als Rückgabeobjekt für UI/Animation
 - gemeinsame Stats-Basis über `CombatantStats`
 - `EnemyFactory` für zentrale Gegnererzeugung
+- `EnemySpawnService` für biomebasierte Gegnerroster
 - Save-System auf **Version 2** erweitert
 - `SaveDataMapper` kapselt Save/Load-Mapping aus dem ViewModel
+
+Aktuelle Gegnerfamilien:
+- Goblin
+- Spider
+- Skeleton
+- Orc
+- Zombie
+- Troll
+- Ogre
+- Dragon
+- DemonLord
+- Lich
+- Boss
 
 Geplante nächste Ausbaustufen:
 - `PlayerProgressionService`
@@ -321,7 +335,6 @@ dotnet run --project "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon 
 
 - **Projektname**: `DungeonOfTheFallen`
 - **Team**: Einzelentwicklung
-- **Unterstützung**: Pair Programming mit KI-Assistent
 - **Zeitrahmen**: Projektwoche im April 2026
 - **Zielplattform**: Windows Desktop (.NET 8)
 

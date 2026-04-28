@@ -35,6 +35,12 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public string SkillName => Model.ClassSkill.Name;
         public string SkillDescription => Model.ClassSkill.Description;
 
+        // Rüstung
+        public int TotalArmorValue => Model.TotalArmorValue;
+        public string ArmorSummary => Model.EquippedArmor.Count == 0
+            ? "Keine Rüstung"
+            : string.Join(", ", Model.EquippedArmor.Values.Select(a => a.Summary));
+
         public PlayerViewModel(Player player)
         {
             ArgumentNullException.ThrowIfNull(player);
@@ -60,7 +66,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 nameof(WeaponDamage),
                 nameof(PotionCount),
                 nameof(SkillName),
-                nameof(SkillDescription));
+                nameof(SkillDescription),
+                nameof(TotalArmorValue),
+                nameof(ArmorSummary));
         }
     }
 }
