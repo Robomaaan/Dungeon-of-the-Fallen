@@ -2,7 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dungeon of the Fallen" Height="900" Width="1400"
-        Background="#0a0a0a" Foreground="#e0e0e0">
+        Background="#0a0a0a" Foreground="#e0e0e0"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
     <Window.InputBindings>
         <KeyBinding Key="W" Command="{Binding MoveUpCommand}" />
         <KeyBinding Key="A" Command="{Binding MoveLeftCommand}" />
@@ -40,7 +42,8 @@
             <ItemsControl ItemsSource="{Binding RenderObjects}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <Canvas Width="1500" Height="1000" ClipToBounds="False" Background="#0a0a0a" />
+                <Canvas Width="1500" Height="1000" ClipToBounds="False" Background="#0a0a0a"
+                        SnapsToDevicePixels="True" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 

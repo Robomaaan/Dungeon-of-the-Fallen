@@ -1,0 +1,303 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════════════════════
+         PRIMÄRER MENÜ-BUTTON  (Gold, groß, animierter Glow)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="MenuButtonStyle" TargetType="Button">
+        <Setter Property="Width"       Value="340"/>
+        <Setter Property="Height"      Value="58"/>
+        <Setter Property="FontSize"    Value="18"/>
+        <Setter Property="FontWeight"  Value="Bold"/>
+        <Setter Property="FontFamily"  Value="Consolas"/>
+        <Setter Property="Foreground"  Value="#FFD700"/>
+        <Setter Property="Cursor"      Value="Hand"/>
+        <Setter Property="Focusable"   Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" CornerRadius="4" BorderThickness="2" Padding="18,0">
+                        <Border.Background>
+                            <SolidColorBrush x:Name="BdBg" Color="#0e1820"/>
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush x:Name="BdBorder" Color="#FFD700"/>
+                        </Border.BorderBrush>
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="BdGlow" Color="#FFD700"
+                                              BlurRadius="18" Opacity="0" ShadowDepth="0"/>
+                        </Border.Effect>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#1c3050" Duration="0:0:0.18"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#FFE566" Duration="0:0:0.18"/>
+                                        <DoubleAnimation Storyboard.TargetName="BdGlow"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.55" Duration="0:0:0.22"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#0e1820" Duration="0:0:0.28"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#FFD700" Duration="0:0:0.28"/>
+                                        <DoubleAnimation Storyboard.TargetName="BdGlow"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.32"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter Property="Foreground" Value="#FFE566"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.75"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         EXIT-BUTTON  (gedämpft rot)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="ExitButtonStyle" TargetType="Button">
+        <Setter Property="Width"       Value="340"/>
+        <Setter Property="Height"      Value="58"/>
+        <Setter Property="FontSize"    Value="18"/>
+        <Setter Property="FontWeight"  Value="Bold"/>
+        <Setter Property="FontFamily"  Value="Consolas"/>
+        <Setter Property="Foreground"  Value="#AA7777"/>
+        <Setter Property="Cursor"      Value="Hand"/>
+        <Setter Property="Focusable"   Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" CornerRadius="4" BorderThickness="2" Padding="18,0">
+                        <Border.Background>
+                            <SolidColorBrush x:Name="BdBg" Color="#0e1820"/>
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush x:Name="BdBorder" Color="#AA5555"/>
+                        </Border.BorderBrush>
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="BdGlow" Color="#CC3333"
+                                              BlurRadius="16" Opacity="0" ShadowDepth="0"/>
+                        </Border.Effect>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#2a1010" Duration="0:0:0.18"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#CC6666" Duration="0:0:0.18"/>
+                                        <DoubleAnimation Storyboard.TargetName="BdGlow"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.45" Duration="0:0:0.22"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#0e1820" Duration="0:0:0.28"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#AA5555" Duration="0:0:0.28"/>
+                                        <DoubleAnimation Storyboard.TargetName="BdGlow"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.32"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter Property="Foreground" Value="#CC8888"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.75"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         SEKUNDÄR-BUTTON  (Zurück, Laden, neutral)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+        <Setter Property="Height"      Value="46"/>
+        <Setter Property="MinWidth"    Value="160"/>
+        <Setter Property="FontSize"    Value="15"/>
+        <Setter Property="FontWeight"  Value="Bold"/>
+        <Setter Property="FontFamily"  Value="Consolas"/>
+        <Setter Property="Foreground"  Value="#8898a8"/>
+        <Setter Property="Cursor"      Value="Hand"/>
+        <Setter Property="Focusable"   Value="False"/>
+        <Setter Property="Padding"     Value="20,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" CornerRadius="4" BorderThickness="1"
+                            Padding="{TemplateBinding Padding}">
+                        <Border.Background>
+                            <SolidColorBrush x:Name="BdBg" Color="#0a1420"/>
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush x:Name="BdBorder" Color="#4a5a6a"/>
+                        </Border.BorderBrush>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#162030" Duration="0:0:0.18"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#8898a8" Duration="0:0:0.18"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BdBg"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#0a1420" Duration="0:0:0.28"/>
+                                        <ColorAnimation Storyboard.TargetName="BdBorder"
+                                                        Storyboard.TargetProperty="Color"
+                                                        To="#4a5a6a" Duration="0:0:0.28"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter Property="Foreground" Value="#aabbcc"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         STAT-BALKEN  (für Klassenauswahl-Info-Panel)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="StatBarStyle" TargetType="ProgressBar">
+        <Setter Property="Height" Value="9"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Border Background="#111826" CornerRadius="3"
+                            BorderBrush="#1e2a38" BorderThickness="1">
+                        <Grid x:Name="PART_Track" ClipToBounds="True">
+                            <Border x:Name="PART_Indicator"
+                                    Background="{TemplateBinding Foreground}"
+                                    HorizontalAlignment="Left" CornerRadius="3"/>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         DUNKLES PANEL  (Info-Box)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="DarkPanelStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#1e2a40"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#0a1020" Offset="0"/>
+                    <GradientStop Color="#080c18" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         GOLDENER TRENNBALKEN
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="GoldSeparatorStyle" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="0,12"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="Transparent" Offset="0"/>
+                    <GradientStop Color="#4a3800"     Offset="0.2"/>
+                    <GradientStop Color="#FFD700"      Offset="0.5"/>
+                    <GradientStop Color="#4a3800"      Offset="0.8"/>
+                    <GradientStop Color="Transparent" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════
+         TITEL-STILE  (Hauptmenü)
+    ══════════════════════════════════════════════════ -->
+    <Style x:Key="MenuTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="40"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Trajan Pro, Georgia, Serif"/>
+        <Setter Property="Foreground" Value="#FFD700"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,6,0,0"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#7a5a00" BlurRadius="12" ShadowDepth="0" Opacity="0.75"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="MenuSubtitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Trajan Pro, Georgia, Serif"/>
+        <Setter Property="Foreground" Value="#d6c08a"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
+</ResourceDictionary>

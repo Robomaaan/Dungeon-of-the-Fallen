@@ -18,11 +18,12 @@ Assets/
 │   └── StoneDungeon/
 │       ├── Floors/       # Bodenplatten
 │       ├── Walls/        # Wandblöcke
-│       └── Special/      # Türen, Treppen, Fallen, Rätsel
+│       └── Special/      # Türen, Treppen, Fallen, Rätsel, Brunnen
 ├── Characters/
 │   ├── Player/           # Spieler-Sprites (Idle, Walk, Attack)
 │   ├── Goblin/           # Goblin-Gegner
 │   ├── Orc/              # Orc-Gegner
+│   ├── NPC/              # NPC-Charaktere
 │   └── Boss/             # Boss-Charaktere
 ├── Items/                # Gold, Tränke, Schlüssel
 ├── Props/                # Dekorative Objekte (Fackeln, Säulen, etc.)

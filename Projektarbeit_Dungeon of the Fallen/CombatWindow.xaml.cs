@@ -157,7 +157,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             {
                 EnemyType.Goblin   => "/Assets/Characters/Goblin/goblin_idle_down_00.png",
                 EnemyType.Orc      => "/Assets/Characters/Orc/orc_idle_down_00.png",
-                EnemyType.Ogre     => "/Assets/Characters/Ogre/ogre_idle_down_00.png",
+                EnemyType.Ogre     => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
                 EnemyType.Dragon or EnemyType.DemonLord or EnemyType.Lich or EnemyType.Boss
                     => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
                 _ => null

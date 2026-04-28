@@ -1,0 +1,387 @@
+<Window x:Class="Projektarbeit_Dungeon_of_the_Fallen.ClassSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Projektarbeit_Dungeon_of_the_Fallen.ViewModels"
+        xmlns:conv="clr-namespace:Projektarbeit_Dungeon_of_the_Fallen.Converters"
+        Title="Dungeon of the Fallen – Klassenauswahl"
+        Height="740" Width="1080"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Loaded="Window_Loaded"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Border CornerRadius="8" ClipToBounds="True">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#03060c" Offset="0"/>
+                <GradientStop Color="#060c18" Offset="0.5"/>
+                <GradientStop Color="#030609" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.Background>
+
+        <!-- Äußerer Rahmen + Goldlinien oben/unten -->
+        <Border BorderBrush="#1a2a3a" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <!-- Hintergrundgrafik (Fallback: unsichtbar wenn fehlt) -->
+                <Image Source="/Assets/Backgrounds/background_menu_dungeon_01.png"
+                       Stretch="UniformToFill" Opacity="0.2"/>
+
+                <!-- Goldlinie oben -->
+                <Border Height="3" VerticalAlignment="Top" CornerRadius="8,8,0,0">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="Transparent" Offset="0"/>
+                            <GradientStop Color="#FFD700" Offset="0.3"/>
+                            <GradientStop Color="#FFD700" Offset="0.7"/>
+                            <GradientStop Color="Transparent" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <!-- Goldlinie unten -->
+                <Border Height="3" VerticalAlignment="Bottom" CornerRadius="0,0,8,8">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="Transparent" Offset="0"/>
+                            <GradientStop Color="#FFD700" Offset="0.3"/>
+                            <GradientStop Color="#FFD700" Offset="0.7"/>
+                            <GradientStop Color="Transparent" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Drag-Handle -->
+                <Rectangle Height="740" Fill="Transparent"
+                           MouseLeftButtonDown="Window_MouseLeftButtonDown"/>
+
+                <!-- Hauptlayout -->
+                <Grid Margin="30,20,30,20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>   <!-- Header / Titel -->
+                        <RowDefinition Height="Auto"/>   <!-- Goldtrennlinie -->
+                        <RowDefinition Height="Auto"/>   <!-- Klassenkarten -->
+                        <RowDefinition Height="*"/>      <!-- Info-Panel -->
+                        <RowDefinition Height="Auto"/>   <!-- Goldtrennlinie -->
+                        <RowDefinition Height="Auto"/>   <!-- Footer-Buttons -->
+                    </Grid.RowDefinitions>
+
+                    <!-- ── HEADER ─────────────────────────────────────── -->
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,12">
+                        <TextBlock Text="KLASSENAUSWAHL"
+                                   FontSize="38" FontWeight="Bold" FontFamily="Consolas"
+                                   HorizontalAlignment="Center" Foreground="#FFD700">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#FFD700" BlurRadius="20"
+                                                  Opacity="0.5" ShadowDepth="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock Text="Wähle deinen Helden für das Dungeon"
+                                   FontSize="14" FontStyle="Italic" FontFamily="Consolas"
+                                   HorizontalAlignment="Center" Foreground="#4a5a6a"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- Trennlinie -->
+                    <Border Grid.Row="1" Style="{StaticResource GoldSeparatorStyle}"/>
+
+                    <!-- ── KLASSENKARTEN ──────────────────────────────── -->
+                    <ItemsControl Grid.Row="2" Margin="0,12,0,12"
+                                  ItemsSource="{Binding Classes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <EventSetter Event="MouseEnter" Handler="ClassCard_MouseEnter"/>
+                                <EventSetter Event="MouseLeave" Handler="ClassCard_MouseLeave"/>
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ClassCardViewModel}">
+                                <Button Command="{Binding SelectCommand}"
+                                        Cursor="Hand" Focusable="False"
+                                        Margin="6,0" Background="Transparent"
+                                        BorderThickness="0" Padding="0">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="CardBd"
+                                                    CornerRadius="6" BorderThickness="2"
+                                                    Padding="10">
+                                                <Border.Background>
+                                                    <SolidColorBrush x:Name="CardBg" Color="#0a1020"/>
+                                                </Border.Background>
+                                                <Border.BorderBrush>
+                                                    <SolidColorBrush x:Name="CardBorder" Color="#2a3a4a"/>
+                                                </Border.BorderBrush>
+                                                <Border.Effect>
+                                                    <DropShadowEffect x:Name="CardGlow" Color="#FFD700"
+                                                                      BlurRadius="14" Opacity="0" ShadowDepth="0"/>
+                                                </Border.Effect>
+                                                <StackPanel>
+                                                    <!-- Portrait-Platzhalter -->
+                                                    <Border Width="110" Height="130" CornerRadius="4"
+                                                            HorizontalAlignment="Center" Margin="0,0,0,8">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#111826" Offset="0"/>
+                                                                <GradientStop Color="#0a1018" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Grid>
+                                                            <!-- Fallback-Buchstabe -->
+                                                            <TextBlock Text="{Binding InitialLetter}"
+                                                                       FontSize="48" FontWeight="Bold"
+                                                                       FontFamily="Consolas"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{Binding AccentColor}"
+                                                                       Opacity="0.3"/>
+                                                            <!-- Portrait-Bild (Fallback transparent) -->
+                                                            <Image Source="{Binding PortraitImage,
+                                                                         Converter={StaticResource FallbackImage}}"
+                                                                   Stretch="UniformToFill"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <!-- Klassenname -->
+                                                    <TextBlock Text="{Binding DisplayName}"
+                                                               FontSize="14" FontWeight="Bold"
+                                                               FontFamily="Consolas"
+                                                               HorizontalAlignment="Center"
+                                                               TextAlignment="Center"
+                                                               Foreground="{Binding AccentColor}"/>
+                                                    <!-- Kurzbeschreibung -->
+                                                    <TextBlock Text="{Binding ShortDescription}"
+                                                               FontSize="10" FontFamily="Consolas"
+                                                               HorizontalAlignment="Center"
+                                                               TextAlignment="Center"
+                                                               TextWrapping="Wrap"
+                                                               Foreground="#4a5a6a"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <ColorAnimation Storyboard.TargetName="CardBg"
+                                                                                Storyboard.TargetProperty="Color"
+                                                                                To="#1a2a40" Duration="0:0:0.2"/>
+                                                                <ColorAnimation Storyboard.TargetName="CardBorder"
+                                                                                Storyboard.TargetProperty="Color"
+                                                                                To="#FFD700" Duration="0:0:0.2"/>
+                                                                <DoubleAnimation Storyboard.TargetName="CardGlow"
+                                                                                 Storyboard.TargetProperty="Opacity"
+                                                                                 To="0.6" Duration="0:0:0.2"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                    <DataTrigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <ColorAnimation Storyboard.TargetName="CardBg"
+                                                                                Storyboard.TargetProperty="Color"
+                                                                                To="#0a1020" Duration="0:0:0.25"/>
+                                                                <ColorAnimation Storyboard.TargetName="CardBorder"
+                                                                                Storyboard.TargetProperty="Color"
+                                                                                To="#2a3a4a" Duration="0:0:0.25"/>
+                                                                <DoubleAnimation Storyboard.TargetName="CardGlow"
+                                                                                 Storyboard.TargetProperty="Opacity"
+                                                                                 To="0" Duration="0:0:0.25"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="CardBd" Property="Opacity" Value="0.88"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="CardBd" Property="Opacity" Value="0.7"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- ── INFO-PANEL ─────────────────────────────────── -->
+                    <Border Grid.Row="3" Style="{StaticResource DarkPanelStyle}"
+                            Padding="24,16" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="300"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Links: Name + Beschreibung + Besonderheiten -->
+                            <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                <TextBlock Text="{Binding InfoName}"
+                                           FontSize="22" FontWeight="Bold"
+                                           FontFamily="Consolas" Foreground="#FFD700"
+                                           Margin="0,0,0,4">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="#FFD700" BlurRadius="10"
+                                                          Opacity="0.4" ShadowDepth="0"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <TextBlock Text="{Binding InfoShortDesc}"
+                                           FontSize="13" FontStyle="Italic"
+                                           FontFamily="Consolas" Foreground="#8898a8"
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding InfoDescription}"
+                                           FontSize="12" FontFamily="Consolas"
+                                           Foreground="#9aabb8" TextWrapping="Wrap"
+                                           LineHeight="20" Margin="0,0,0,12"/>
+                                <TextBlock Text="BESONDERHEITEN"
+                                           FontSize="10" FontWeight="Bold"
+                                           FontFamily="Consolas" Foreground="#6f86a0"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding InfoSpecialsText}"
+                                           FontSize="11" FontFamily="Consolas"
+                                           Foreground="#7a9ab0" TextWrapping="Wrap"
+                                           LineHeight="18"/>
+                            </StackPanel>
+
+                            <!-- Rechts: Basiswerte mit Balken -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="BASISWERTE"
+                                           FontSize="10" FontWeight="Bold"
+                                           FontFamily="Consolas" Foreground="#6f86a0"
+                                           Margin="0,0,0,10"/>
+
+                                <!-- HP -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="36"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="HP"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#FF6B6B" FontWeight="Bold"
+                                               VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Maximum="100"
+                                                 Value="{Binding InfoHealthPct, Mode=OneWay}"
+                                                 Style="{StaticResource StatBarStyle}"
+                                                 Foreground="#FF5555"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding InfoHealth}"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#9aabb8" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <!-- Schaden -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="36"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="SCHADEN"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#FF9944" FontWeight="Bold"
+                                               VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Maximum="100"
+                                                 Value="{Binding InfoDamagePct, Mode=OneWay}"
+                                                 Style="{StaticResource StatBarStyle}"
+                                                 Foreground="#FF8833"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding InfoDamage}"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#9aabb8" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <!-- Verteidigung -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="36"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="VERTEID."
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#66BBFF" FontWeight="Bold"
+                                               VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Maximum="100"
+                                                 Value="{Binding InfoDefensePct, Mode=OneWay}"
+                                                 Style="{StaticResource StatBarStyle}"
+                                                 Foreground="#4488CC"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding InfoDefense}"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#9aabb8" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <!-- Tempo -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="36"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="TEMPO"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#44DDAA" FontWeight="Bold"
+                                               VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Maximum="100"
+                                                 Value="{Binding InfoSpeedPct, Mode=OneWay}"
+                                                 Style="{StaticResource StatBarStyle}"
+                                                 Foreground="#33BB88"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding InfoSpeed}"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#9aabb8" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <!-- Magie -->
+                                <Grid Margin="0,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="36"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="MAGIE"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#AA88FF" FontWeight="Bold"
+                                               VerticalAlignment="Center"/>
+                                    <ProgressBar Grid.Column="1" Maximum="100"
+                                                 Value="{Binding InfoMagicPct, Mode=OneWay}"
+                                                 Style="{StaticResource StatBarStyle}"
+                                                 Foreground="#8866DD"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding InfoMagic}"
+                                               FontSize="11" FontFamily="Consolas"
+                                               Foreground="#9aabb8" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Trennlinie -->
+                    <Border Grid.Row="4" Style="{StaticResource GoldSeparatorStyle}" Margin="0,4"/>
+
+                    <!-- ── FOOTER-BUTTONS ─────────────────────────────── -->
+                    <Grid Grid.Row="5" Margin="0,8,0,0">
+                        <Button Content="◄  ZURÜCK"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Command="{Binding BackCommand}"/>
+                        <Button Content="ABENTEUER BEGINNEN  ►"
+                                Style="{StaticResource MenuButtonStyle}"
+                                Width="380" HorizontalAlignment="Right"
+                                Command="{Binding StartCommand}"
+                                IsEnabled="{Binding CanStart}"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

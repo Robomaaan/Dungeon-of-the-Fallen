@@ -3,8 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Projektarbeit_Dungeon_of_the_Fallen.Converters">
     <Application.Resources>
-        <local:BoolToVisibilityConverter x:Key="BoolToVis" />
-        <local:VictoryTextConverter x:Key="VictoryText" />
-        <local:FallbackImageConverter x:Key="FallbackImage" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Theme/MenuStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+            <local:VictoryTextConverter      x:Key="VictoryText"/>
+            <local:FallbackImageConverter    x:Key="FallbackImage"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
