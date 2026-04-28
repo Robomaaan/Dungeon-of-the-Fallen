@@ -8,8 +8,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool isVictory)
-                return isVictory ? "🏆 VICTORY! 🏆" : "💀 DEFEAT! 💀";
-            return "GAME OVER";
+                return isVictory ? "🏆 SIEG! 🏆" : "💀 NIEDERLAGE! 💀";
+            return "SPIEL VORBEI";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

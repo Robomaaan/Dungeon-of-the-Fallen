@@ -8,6 +8,7 @@ namespace DungeonOfTheFallen.Core.Models
         Orc,
         Zombie,
         Troll,
+        Ogre,
         Dragon,
         DemonLord,
         Lich,

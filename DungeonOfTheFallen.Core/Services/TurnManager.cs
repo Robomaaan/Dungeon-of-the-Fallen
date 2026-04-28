@@ -7,6 +7,11 @@ namespace DungeonOfTheFallen.Core.Services
         private readonly GameState _gameState;
         private readonly Random _random = new();
 
+        // Gesetzt durch ExecuteEnemyTurns wenn ein Gegner den Spieler bedrängt.
+        // Der Aufrufer (MainViewModel) muss diesen Gegner in einen Kampf führen.
+        private Enemy? _pendingEncounterEnemy;
+        public Enemy? PendingEncounterEnemy => _pendingEncounterEnemy;
+
         public TurnManager(GameState gameState) => _gameState = gameState;
 
         public bool MovePlayer(int newX, int newY)
@@ -53,10 +58,13 @@ namespace DungeonOfTheFallen.Core.Services
 
         private void ExecuteEnemyTurns()
         {
+            _pendingEncounterEnemy = null;
             foreach (var enemy in _gameState.Enemies.ToList())
             {
                 if (!enemy.IsAlive) continue;
                 MoveEnemy(enemy);
+                // Nach dem ersten Encounter-Trigger aufhören – MainViewModel öffnet den Kampf
+                if (_pendingEncounterEnemy != null) break;
             }
         }
 
@@ -68,24 +76,12 @@ namespace DungeonOfTheFallen.Core.Services
 
             if (dist <= 1)
             {
-                var roll = Dice.RollD20();
-                if (roll == 1)
+                // Kein Direktschaden mehr – stattdessen Kampf auslösen
+                if (_pendingEncounterEnemy == null)
                 {
-                    _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} stolpert beim Gelegenheitsangriff.");
-                    return;
+                    _pendingEncounterEnemy = enemy;
+                    _gameState.AddCombatLogEntry($"[BEGEGNUNG] {enemy.Name} versperrt dir den Weg!");
                 }
-
-                var hit = roll == 20 || roll + enemy.Attack + enemy.Weapon.AttackBonus >= _gameState.Player.ArmorClass;
-                if (!hit)
-                {
-                    _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} verfehlt dich im Gedränge.");
-                    return;
-                }
-
-                var damage = enemy.Weapon.Damage.Roll(roll == 20);
-                damage = _gameState.Player.DamageModifiers.Apply(enemy.Weapon.Damage.DamageType, damage);
-                _gameState.Player.HP -= damage;
-                _gameState.AddCombatLogEntry($"[ANGRIFF] {enemy.Name} trifft dich für {damage} Schaden!");
                 return;
             }
 
