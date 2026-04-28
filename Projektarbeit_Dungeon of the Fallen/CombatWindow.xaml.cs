@@ -77,7 +77,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
                 "/Assets/Characters/Orc/orc_attack_down_02.png",
                 "/Assets/Characters/Orc/orc_attack_down_03.png",
             },
-            EnemyType.Dragon or EnemyType.DemonLord or EnemyType.Lich or EnemyType.Boss => new[]
+            EnemyType.Ogre or EnemyType.Dragon or EnemyType.DemonLord or EnemyType.Lich or EnemyType.Boss => new[]
             {
                 "/Assets/Characters/Boss/boss_orc_attack_down_00.png",
                 "/Assets/Characters/Boss/boss_orc_attack_down_01.png",
@@ -110,6 +110,32 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             Debug.WriteLine($"[UIScale] Dice size: 120x120 (each)");
             Debug.WriteLine($"[UIScale] Window size: {Width}x{Height}");
             Debug.WriteLine("[UIScale] Layout adjustment finished");
+
+            Closing += CombatWindow_Closing;
+        }
+
+        private void CombatWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            CleanupTimers();
+            if (!_vm.IsGameOver) e.Cancel = true;
+        }
+
+        private void CleanupTimers()
+        {
+            Debug.WriteLine("[Cleanup] Stopping all timers");
+            
+            if (_attackTimer != null)
+            {
+                _attackTimer.Stop();
+                _attackTimer.Tick -= OnAttackFrameTick;
+                _attackTimer = null;
+            }
+
+            _playerShuffleTimer?.Stop();
+            _playerShuffleTimer = null;
+
+            _enemyShuffleTimer?.Stop();
+            _enemyShuffleTimer = null;
         }
 
         // ═════════════════════════════════════════════════════════════════
@@ -122,8 +148,13 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             c.Children.Clear();
 
             if (TryAddSpriteImage(c, "/Assets/Characters/Player/player_idle_down_00.png"))
+            {
+                Debug.WriteLine("[Sprites] Player sprite loaded from asset");
                 return;
+            }
 
+            Debug.WriteLine("[Sprites] Player sprite asset failed, using procedural fallback");
+            
             // Prozeduraler Fallback (skaliert für neuen Canvas)
             c.RenderTransform = new ScaleTransform(190.0 / 110, 260.0 / 160);
             c.RenderTransformOrigin = new Point(0, 0);
@@ -193,38 +224,112 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
 
         private void AnimateAttack(Canvas canvas, string[] frames, Action onDone)
         {
-            _attackTimer?.Stop();
+            Debug.WriteLine($"[Animation] Starting attack animation with {frames.Length} frames");
+
+            // Alten Timer stoppen und Handler entfernen
+            if (_attackTimer != null)
+            {
+                _attackTimer.Stop();
+                _attackTimer.Tick -= OnAttackFrameTick;
+                _attackTimer = null;
+            }
+
             _attackCanvas       = canvas;
             _attackFrames       = frames;
             _attackFrameIndex   = 0;
             _attackDoneCallback = onDone;
 
-            ShowSpriteFrame(canvas, frames[0]);
-            _attackFrameIndex = 1;
+            // Erstes Frame anzeigen
+            if (frames.Length > 0)
+            {
+                ShowSpriteFrame(canvas, frames[0]);
+                _attackFrameIndex = 1;
+                Debug.WriteLine($"[Animation] First frame shown, {frames.Length - 1} frames remaining");
+            }
+            else
+            {
+                Debug.WriteLine("[Animation] No frames provided!");
+                onDone?.Invoke();
+                return;
+            }
 
-            _attackTimer       = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
+            // Neuen Timer erstellen und starten
+            _attackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
             _attackTimer.Tick += OnAttackFrameTick;
             _attackTimer.Start();
+            Debug.WriteLine("[Animation] Timer started");
         }
 
         private void OnAttackFrameTick(object? sender, EventArgs e)
         {
-            if (_attackFrameIndex >= _attackFrames!.Length)
+            // Sicherstellen, dass _attackFrames und _attackTimer noch gültig sind
+            if (_attackFrames == null || _attackFrames.Length == 0 || _attackTimer == null)
             {
-                _attackTimer!.Stop();
+                Debug.WriteLine("[Animation] Timer tick but frames are null or empty");
+                _attackTimer?.Stop();
+                return;
+            }
+
+            if (_attackFrameIndex >= _attackFrames.Length)
+            {
+                Debug.WriteLine("[Animation] Animation complete, stopping timer");
+                _attackTimer.Stop();
                 _attackTimer.Tick -= OnAttackFrameTick;
+                _attackTimer = null;
                 _attackDoneCallback?.Invoke();
                 return;
             }
+
+            Debug.WriteLine($"[Animation] Frame {_attackFrameIndex} of {_attackFrames.Length}");
             ShowSpriteFrame(_attackCanvas!, _attackFrames[_attackFrameIndex++]);
         }
 
         private static void ShowSpriteFrame(Canvas canvas, string path)
         {
-            var bitmap = LoadBitmap(path);
-            if (bitmap == null) return;
-            var img = canvas.Children.OfType<System.Windows.Controls.Image>().FirstOrDefault();
-            if (img != null) img.Source = bitmap;
+            try
+            {
+                var bitmap = LoadBitmap(path);
+                if (bitmap == null) 
+                {
+                    Debug.WriteLine($"[Animation] Failed to load bitmap: {path}");
+                    return;
+                }
+
+                // Versuche existierendes Image zu finden
+                var img = canvas.Children.OfType<System.Windows.Controls.Image>().FirstOrDefault();
+                
+                if (img != null)
+                {
+                    // Image existiert, nur Source aktualisieren
+                    img.Source = bitmap;
+                    Debug.WriteLine($"[Animation] Updated existing image with {path}");
+                }
+                else
+                {
+                    // Kein Image vorhanden - das ist wahrscheinlich ein prozeduraler Fallback
+                    // Wir müssen den Canvas löschen und ein neues Image hinzufügen
+                    Debug.WriteLine($"[Animation] No image found in canvas, clearing and adding new one for {path}");
+                    
+                    canvas.Children.Clear();
+                    canvas.RenderTransform = null;
+                    
+                    var newImg = new System.Windows.Controls.Image
+                    {
+                        Source  = bitmap,
+                        Width   = canvas.Width,
+                        Height  = canvas.Height,
+                        Stretch = Stretch.Uniform
+                    };
+                    RenderOptions.SetBitmapScalingMode(newImg, BitmapScalingMode.NearestNeighbor);
+                    Canvas.SetLeft(newImg, 0);
+                    Canvas.SetTop(newImg, 0);
+                    canvas.Children.Add(newImg);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Animation] ShowSpriteFrame failed: {ex.Message}");
+            }
         }
 
         private static bool TryAddSpriteImage(Canvas canvas, string path)
@@ -618,9 +723,14 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
                     bmp.CacheOption = BitmapCacheOption.OnLoad;
                     bmp.EndInit();
                     bmp.Freeze();
+                    Debug.WriteLine($"[Assets] Successfully loaded: {p}");
                     return bmp;
                 }
-                catch { return null; }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Assets] Failed to load {p}: {ex.Message}");
+                    return null;
+                }
             });
 
         // ═════════════════════════════════════════════════════════════════
@@ -838,11 +948,6 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
                 CloseButton.Visibility = Visibility.Visible;
                 DiceLabel.Text = _vm.IsVictory ? "🏆 Sieg!" : "💀 Niederlage";
             }
-        }
-
-        private void CombatWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (!_vm.IsGameOver) e.Cancel = true;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
