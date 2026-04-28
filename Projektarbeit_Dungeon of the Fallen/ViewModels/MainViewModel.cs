@@ -10,7 +10,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
     public class MainViewModel : ViewModelBase
     {
         // ── Constants ────────────────────────────────────────────────────────
-        private const int DungeonSize      = 20;
+        private const int DungeonSize        = 20;
+        private const int TileSize           = 64;
+        private const int TileHeight         = TileSize * 3 / 4;
+        private const int RenderMarginX      = 40;
+        private const int RenderMarginY      = 48;
         private const int CombatLogMaxEntries = 12;
         private const int SpawnX           = 3;
         private const int SpawnY           = 3;
@@ -41,6 +45,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private string _combatLog       = string.Empty;
         private string _biomeDisplayName = string.Empty;
+        private int _renderSurfaceWidth  = 1;
+        private int _renderSurfaceHeight = 1;
         private bool _isGameOver;
         private bool _isVictory;
 
@@ -63,6 +69,18 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public ObservableCollection<RenderObjectViewModel> RenderObjects { get; } = new();
         public BiomeType CurrentBiome { get; private set; }
         public int CurrentFloor => GameState.CurrentFloor;
+        public int RenderSurfaceWidth
+        {
+            get => _renderSurfaceWidth;
+            private set => SetProperty(ref _renderSurfaceWidth, value);
+        }
+
+        public int RenderSurfaceHeight
+        {
+            get => _renderSurfaceHeight;
+            private set => SetProperty(ref _renderSurfaceHeight, value);
+        }
+
         public string FloorDisplay => $"Ebene {GameState.CurrentFloor}/{GameState.FinalFloor}";
         public string ObjectiveText => GameState.ExitUnlocked
             ? "Ziel erreicht: Gehe zum Ausgang."
@@ -736,14 +754,12 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         // ── Rendering ────────────────────────────────────────────────────────
 
         // Renders only the current room + 2-tile border (to show corridor exits).
-        // Tile sizes are calculated dynamically so the room fills the canvas area.
+        // Tile positions are snapped to the native 64x48 sprite grid so the
+        // canvas stays on whole pixels and the floor cells do not show seams.
         private void RebuildRenderObjects()
         {
-            const double TargetW = 1040;
-            const double TargetH = 640;
-            const double OffsetX = 30;
-            const double OffsetY = 20;
-            const double TileOverlap = 8.0;
+            const int OffsetX = RenderMarginX;
+            const int OffsetY = RenderMarginY;
 
             RenderObjects.Clear();
             var map  = GameState.Map;
@@ -755,12 +771,16 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var vy1 = Math.Max(0, room.Y1 - 2);
             var vx2 = Math.Min(map.Width  - 1, room.X2 + 2);
             var vy2 = Math.Min(map.Height - 1, room.Y2 + 2);
-            var vw  = vx2 - vx1 + 1;
-            var vh  = vy2 - vy1 + 1;
+            var wallLift = (int)Math.Floor(TileHeight * 0.58);
+            var wallHeight = (int)Math.Floor(TileHeight * 1.62);
+            var charH = (int)Math.Floor(TileHeight * 1.8);
+            var itemSize = (int)Math.Floor(Math.Min(TileSize, TileHeight) * 0.66);
+            var entityWidth = TileSize + 2;
+            var visibleWidth = vx2 - vx1 + 1;
+            var visibleHeight = vy2 - vy1 + 1;
 
-            var tileW = Math.Round(TargetW / vw);
-            var tileH = Math.Round(TargetH / vh);
-            var charH = Math.Round(tileH * 1.8);
+            RenderSurfaceWidth = OffsetX * 2 + (visibleWidth * TileSize) + 8;
+            RenderSurfaceHeight = OffsetY * 2 + (visibleHeight * TileHeight) + 8;
 
             for (var y = vy1; y <= vy2; y++)
             for (var x = vx1; x <= vx2; x++)
@@ -768,15 +788,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 var tile = map.GetTile(x, y);
                 if (tile == null) continue;
 
-                var sx = Math.Round(OffsetX + (x - vx1) * tileW);
-                var sy = Math.Round(OffsetY + (y - vy1) * tileH);
+                var sx = OffsetX + (x - vx1) * TileSize;
+                var sy = OffsetY + (y - vy1) * TileHeight;
                 var bz = y * 100;
 
                 // Floor (always rendered as base)
                 RenderObjects.Add(new RenderObjectViewModel(
                     _assetRegistry.GetFloorAsset(tile),
-                    sx - TileOverlap * 0.5, sy - TileOverlap * 0.5,
-                    tileW + TileOverlap, tileH + TileOverlap,
+                    sx, sy,
+                    TileSize, TileHeight,
                     bz, $"F_{x}_{y}", "floor"));
 
                 // Wall (taller, rendered above floor)
@@ -784,8 +804,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 {
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetWallAsset(tile, map),
-                        sx - TileOverlap * 0.5, sy - Math.Round(tileH * 0.58),
-                        tileW + TileOverlap, Math.Round(tileH * 1.62),
+                        sx, sy - wallLift,
+                        TileSize, wallHeight,
                         bz + 40, $"W_{x}_{y}", "wall"));
                     continue;
                 }
@@ -795,41 +815,40 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 {
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetSpecialTileAsset(tile),
-                        sx - TileOverlap * 0.25, sy - TileOverlap * 0.25,
-                        tileW + TileOverlap * 0.5, tileH + TileOverlap * 0.5,
+                        sx, sy,
+                        TileSize, TileHeight,
                         bz + 10, $"S_{tile.TileType}_{x}_{y}", "special"));
                 }
 
                 // Item
                 if (tile.Item != null)
                 {
-                    var iSize = Math.Min(tileW, tileH) * 0.66;
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetItemAsset(tile),
-                        sx + (tileW - iSize) / 2, sy + (tileH - iSize) / 2,
-                        iSize, iSize, bz + 20, $"I_{x}_{y}", "item"));
+                        sx + (TileSize - itemSize) / 2, sy + (TileHeight - itemSize) / 2,
+                        itemSize, itemSize, bz + 20, $"I_{x}_{y}", "item"));
                 }
 
                 // Enemy
                 if (tile.Enemy?.IsAlive == true)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetEnemyAsset(tile.Enemy),
-                        sx - 1, sy - charH + tileH,
-                        tileW + 2, charH, bz + 50, $"E_{x}_{y}", "entity"));
+                        sx - 1, sy - charH + TileHeight,
+                        entityWidth, charH, bz + 50, $"E_{x}_{y}", "entity"));
 
                 // NPC
                 if (tile.Npc != null)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetNpcAsset(tile.Npc),
-                        sx - 1, sy - charH + tileH,
-                        tileW + 2, charH, bz + 50, $"N_{x}_{y}", "entity"));
+                        sx - 1, sy - charH + TileHeight,
+                        entityWidth, charH, bz + 50, $"N_{x}_{y}", "entity"));
 
                 // Player
                 if (tile.HasPlayer)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetPlayerAsset(GameState.Player),
-                        sx - 1, sy - charH + tileH,
-                        tileW + 2, charH, bz + 60, $"P_{x}_{y}", "player"));
+                        sx - 1, sy - charH + TileHeight,
+                        entityWidth, charH, bz + 60, $"P_{x}_{y}", "player"));
             }
         }
 

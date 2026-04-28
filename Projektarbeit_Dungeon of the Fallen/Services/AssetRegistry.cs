@@ -38,10 +38,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 TileType.LavaTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
                 TileType.SpikeTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
                 TileType.DivineTrap => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
-                TileType.HealingShrine => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HealingAltar => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HotSpring => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HealingBubble => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
+                TileType.HealingShrine => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
+                TileType.HealingAltar => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
+                TileType.HotSpring => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
+                TileType.HealingBubble => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
                 TileType.LightCircle => "/Assets/Tiles/StoneDungeon/Floors/floor_stone_01.png",
                 TileType.LockedDoor => "/Assets/Tiles/StoneDungeon/Special/locked_door_01.png",
                 TileType.Puzzle => "/Assets/Tiles/StoneDungeon/Special/puzzle_tile_01.png",
@@ -191,9 +191,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
             return npc.NpcType switch
             {
                 NpcType.Healer      => "/Assets/Characters/NPC/cleric_00001_.png",
-                NpcType.Merchant    => "/Assets/Characters/Player/player_idle_down_00.png",
-                NpcType.Chronicler  => "/Assets/Characters/Player/player_idle_down_00.png",
-                NpcType.Blacksmith  => "/Assets/Characters/Player/player_idle_down_00.png",
+                NpcType.Merchant    => "/Assets/Characters/NPC/cleric_00001_.png",
+                NpcType.Chronicler  => "/Assets/Characters/NPC/lichking_idle_down_01.png",
+                NpcType.Blacksmith  => "/Assets/Characters/NPC/cleric_00001_.png",
                 NpcType.Scout       => "/Assets/Characters/NPC/icon_stealth_00001_.png",
                 NpcType.Mystic      => "/Assets/Characters/NPC/lichking_idle_down_01.png",
                 _                   => MissingAssetPath

@@ -9,10 +9,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
     public class RenderObjectViewModel : ViewModelBase
     {
         private string _assetPath = string.Empty;
-        private double _x;
-        private double _y;
-        private double _width;
-        private double _height;
+        private int _x;
+        private int _y;
+        private int _width;
+        private int _height;
         private int _zIndex;
         private double _opacity = 1.0;
         private Brush _background = Brushes.Transparent;
@@ -33,7 +33,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         /// <summary>
         /// Screen X coordinate (Canvas.Left)
         /// </summary>
-        public double X
+        public int X
         {
             get => _x;
             set => SetProperty(ref _x, value);
@@ -42,7 +42,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         /// <summary>
         /// Screen Y coordinate (Canvas.Top)
         /// </summary>
-        public double Y
+        public int Y
         {
             get => _y;
             set => SetProperty(ref _y, value);
@@ -51,7 +51,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         /// <summary>
         /// Rendered width in pixels
         /// </summary>
-        public double Width
+        public int Width
         {
             get => _width;
             set => SetProperty(ref _width, value);
@@ -60,7 +60,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         /// <summary>
         /// Rendered height in pixels
         /// </summary>
-        public double Height
+        public int Height
         {
             get => _height;
             set => SetProperty(ref _height, value);
@@ -136,10 +136,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         public RenderObjectViewModel(
             string assetPath,
-            double x,
-            double y,
-            double width,
-            double height,
+            int x,
+            int y,
+            int width,
+            int height,
             int zIndex,
             string debugName,
             string layer = "default",
@@ -158,6 +158,6 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             Background = background ?? Brushes.Transparent;
         }
 
-        public override string ToString() => $"RenderObject({DebugName} @ {X:F0},{Y:F0} Z:{ZIndex} {Layer})";
+        public override string ToString() => $"RenderObject({DebugName} @ {X},{Y} Z:{ZIndex} {Layer})";
     }
 }
