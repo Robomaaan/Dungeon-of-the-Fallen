@@ -1,3 +1,5 @@
+using System.Windows.Media;
+
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
     /// <summary>
@@ -13,6 +15,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private double _height;
         private int _zIndex;
         private double _opacity = 1.0;
+        private Brush _background = Brushes.Transparent;
         private string _debugName = string.Empty;
         private bool _isAnimated;
         private int _frameIndex;
@@ -83,6 +86,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         }
 
         /// <summary>
+        /// Background brush rendered behind the sprite to hide transparent margins.
+        /// </summary>
+        public Brush Background
+        {
+            get => _background;
+            set => SetProperty(ref _background, value ?? Brushes.Transparent);
+        }
+
+        /// <summary>
         /// Debug/display name for logging
         /// </summary>
         public string DebugName
@@ -131,7 +143,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             int zIndex,
             string debugName,
             string layer = "default",
-            double opacity = 1.0)
+            double opacity = 1.0,
+            Brush? background = null)
         {
             AssetPath = assetPath;
             X = x;
@@ -142,6 +155,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             DebugName = debugName;
             Layer = layer;
             Opacity = opacity;
+            Background = background ?? Brushes.Transparent;
         }
 
         public override string ToString() => $"RenderObject({DebugName} @ {X:F0},{Y:F0} Z:{ZIndex} {Layer})";

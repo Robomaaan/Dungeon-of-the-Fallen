@@ -128,6 +128,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
 
             return tile.TileType switch
             {
+                TileType.HealingRoom => "/Assets/Tiles/StoneDungeon/Special/fountain.png",
                 TileType.LockedDoor => "/Assets/Tiles/StoneDungeon/Special/locked_door_01.png",
                 TileType.Exit => "/Assets/Tiles/StoneDungeon/Special/exit_stairs_01.png",
                 TileType.ThornTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
@@ -135,10 +136,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 TileType.LavaTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
                 TileType.SpikeTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
                 TileType.DivineTrap => "/Assets/Tiles/StoneDungeon/Special/trap_spikes_01.png",
-                TileType.HealingShrine => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HealingAltar => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HotSpring => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
-                TileType.HealingBubble => "/Assets/Tiles/StoneDungeon/Special/healing_shrine_01.png",
+                TileType.HealingShrine => "/Assets/Tiles/StoneDungeon/Special/fountain.png",
+                TileType.HealingAltar => "/Assets/Tiles/StoneDungeon/Special/fountain.png",
+                TileType.HotSpring => "/Assets/Tiles/StoneDungeon/Special/fountain.png",
+                TileType.HealingBubble => "/Assets/Tiles/StoneDungeon/Special/fountain.png",
                 TileType.Puzzle => "/Assets/Tiles/StoneDungeon/Special/puzzle_tile_01.png",
                 TileType.KeyPedestal => "/Assets/Tiles/StoneDungeon/Special/key_pedestal_01.png",
                 _ => MissingAssetPath
@@ -170,7 +171,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                 EnemyType.Orc       => "/Assets/Characters/Orc/orc_idle_down_00.png",
                 EnemyType.Zombie    => "/Assets/Characters/Zombie/zombie_idle_down_00.png",
                 EnemyType.Troll     => "/Assets/Characters/Troll/troll_idle_down_00.png",
-                EnemyType.Ogre      => "/Assets/Characters/Ogre/ogre_idle_down_00.png",
+                EnemyType.Ogre      => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
                 EnemyType.Dragon    => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
                 EnemyType.DemonLord => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
                 EnemyType.Lich      => "/Assets/Characters/Boss/boss_orc_idle_down_00.png",
@@ -189,12 +190,12 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
 
             return npc.NpcType switch
             {
-                NpcType.Healer      => "/Assets/Characters/NPC/npc_healer_idle_down_00.png",
-                NpcType.Merchant    => "/Assets/Characters/NPC/npc_merchant_idle_down_00.png",
-                NpcType.Chronicler  => "/Assets/Characters/NPC/npc_chronicler_idle_down_00.png",
-                NpcType.Blacksmith  => "/Assets/Characters/NPC/npc_blacksmith_idle_down_00.png",
-                NpcType.Scout       => "/Assets/Characters/NPC/npc_scout_idle_down_00.png",
-                NpcType.Mystic      => "/Assets/Characters/NPC/npc_mystic_idle_down_00.png",
+                NpcType.Healer      => "/Assets/Characters/NPC/cleric_00001_.png",
+                NpcType.Merchant    => "/Assets/Characters/Player/player_idle_down_00.png",
+                NpcType.Chronicler  => "/Assets/Characters/Player/player_idle_down_00.png",
+                NpcType.Blacksmith  => "/Assets/Characters/Player/player_idle_down_00.png",
+                NpcType.Scout       => "/Assets/Characters/NPC/icon_stealth_00001_.png",
+                NpcType.Mystic      => "/Assets/Characters/NPC/lichking_idle_down_01.png",
                 _                   => MissingAssetPath
             };
         }

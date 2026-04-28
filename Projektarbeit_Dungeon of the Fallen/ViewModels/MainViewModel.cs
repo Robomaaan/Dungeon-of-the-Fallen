@@ -743,6 +743,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             const double TargetH = 640;
             const double OffsetX = 30;
             const double OffsetY = 20;
+            const double TileOverlap = 8.0;
 
             RenderObjects.Clear();
             var map  = GameState.Map;
@@ -757,9 +758,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var vw  = vx2 - vx1 + 1;
             var vh  = vy2 - vy1 + 1;
 
-            var tileW = TargetW / vw;
-            var tileH = TargetH / vh;
-            var charH = tileH * 1.8;
+            var tileW = Math.Round(TargetW / vw);
+            var tileH = Math.Round(TargetH / vh);
+            var charH = Math.Round(tileH * 1.8);
 
             for (var y = vy1; y <= vy2; y++)
             for (var x = vx1; x <= vx2; x++)
@@ -767,21 +768,25 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 var tile = map.GetTile(x, y);
                 if (tile == null) continue;
 
-                var sx = OffsetX + (x - vx1) * tileW;
-                var sy = OffsetY + (y - vy1) * tileH;
+                var sx = Math.Round(OffsetX + (x - vx1) * tileW);
+                var sy = Math.Round(OffsetY + (y - vy1) * tileH);
                 var bz = y * 100;
 
                 // Floor (always rendered as base)
                 RenderObjects.Add(new RenderObjectViewModel(
                     _assetRegistry.GetFloorAsset(tile),
-                    sx, sy, tileW, tileH, bz, $"F_{x}_{y}", "floor"));
+                    sx - TileOverlap * 0.5, sy - TileOverlap * 0.5,
+                    tileW + TileOverlap, tileH + TileOverlap,
+                    bz, $"F_{x}_{y}", "floor"));
 
                 // Wall (taller, rendered above floor)
                 if (tile.TileType == TileType.Wall)
                 {
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetWallAsset(tile, map),
-                        sx, sy - tileH * 0.5, tileW, tileH * 1.5, bz + 40, $"W_{x}_{y}", "wall"));
+                        sx - TileOverlap * 0.5, sy - Math.Round(tileH * 0.58),
+                        tileW + TileOverlap, Math.Round(tileH * 1.62),
+                        bz + 40, $"W_{x}_{y}", "wall"));
                     continue;
                 }
 
@@ -790,13 +795,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 {
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetSpecialTileAsset(tile),
-                        sx, sy, tileW, tileH, bz + 10, $"S_{tile.TileType}_{x}_{y}", "special"));
+                        sx - TileOverlap * 0.25, sy - TileOverlap * 0.25,
+                        tileW + TileOverlap * 0.5, tileH + TileOverlap * 0.5,
+                        bz + 10, $"S_{tile.TileType}_{x}_{y}", "special"));
                 }
 
                 // Item
                 if (tile.Item != null)
                 {
-                    var iSize = Math.Min(tileW, tileH) * 0.6;
+                    var iSize = Math.Min(tileW, tileH) * 0.66;
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetItemAsset(tile),
                         sx + (tileW - iSize) / 2, sy + (tileH - iSize) / 2,
@@ -807,19 +814,22 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 if (tile.Enemy?.IsAlive == true)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetEnemyAsset(tile.Enemy),
-                        sx, sy - charH + tileH, tileW, charH, bz + 50, $"E_{x}_{y}", "entity"));
+                        sx - 1, sy - charH + tileH,
+                        tileW + 2, charH, bz + 50, $"E_{x}_{y}", "entity"));
 
                 // NPC
                 if (tile.Npc != null)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetNpcAsset(tile.Npc),
-                        sx, sy - charH + tileH, tileW, charH, bz + 50, $"N_{x}_{y}", "entity"));
+                        sx - 1, sy - charH + tileH,
+                        tileW + 2, charH, bz + 50, $"N_{x}_{y}", "entity"));
 
                 // Player
                 if (tile.HasPlayer)
                     RenderObjects.Add(new RenderObjectViewModel(
                         _assetRegistry.GetPlayerAsset(GameState.Player),
-                        sx, sy - charH + tileH, tileW, charH, bz + 60, $"P_{x}_{y}", "player"));
+                        sx - 1, sy - charH + tileH,
+                        tileW + 2, charH, bz + 60, $"P_{x}_{y}", "player"));
             }
         }
 
@@ -829,8 +839,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             TileType.LockedDoor   or TileType.Exit         or
             TileType.ThornTrap    or TileType.CurseTrap    or TileType.LavaTrap  or
             TileType.SpikeTrap    or TileType.DivineTrap   or
+            TileType.HealingRoom   or
             TileType.HealingShrine or TileType.HealingAltar or TileType.HotSpring or
             TileType.HealingBubble or
             TileType.Puzzle       or TileType.KeyPedestal;
+
     }
 }

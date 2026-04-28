@@ -15,6 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Data\player_classes.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Assets\**\*.png" />
     <None Remove="Assets\**\*.jpg" />
     <None Remove="Assets\**\*.jpeg" />
