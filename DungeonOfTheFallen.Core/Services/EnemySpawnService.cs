@@ -13,7 +13,6 @@ namespace DungeonOfTheFallen.Core.Services
                 {
                     EnemyFactory.Create(EnemyType.Goblin,  "Goblin-Aufseher",           floor),
                     EnemyFactory.Create(EnemyType.Spider,  "Dornenspinne",              floor),
-                    EnemyFactory.Create(EnemyType.Orc,     "Dickicht-Ork",              floor),
                     EnemyFactory.Create(EnemyType.Ogre,    "Grondak der Knochenbrecher", floor)
                 },
                 BiomeType.Crypt => new[]

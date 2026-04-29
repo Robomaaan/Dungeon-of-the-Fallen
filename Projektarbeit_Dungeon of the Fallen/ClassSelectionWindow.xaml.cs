@@ -65,7 +65,19 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
 
         // ── Fenster verschiebbar ──────────────────────────────────────────
 
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
-            DragMove();
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            try
+            {
+                DragMove();
+            }
+            catch (InvalidOperationException)
+            {
+                Debug.WriteLine("[ClassSelection] DragMove skipped because the primary mouse button was not pressed.");
+            }
+        }
     }
 }

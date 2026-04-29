@@ -58,6 +58,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private ICommand? _usePotionCommand;
         private ICommand? _saveGameCommand;
         private ICommand? _loadGameCommand;
+        private ICommand? _continueCommand;
         private ICommand? _saveAndReturnToMenuCommand;
         private ICommand? _returnToMenuCommand;
         private ICommand? _abandonRunCommand;
@@ -69,6 +70,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public ObservableCollection<RenderObjectViewModel> RenderObjects { get; } = new();
         public BiomeType CurrentBiome { get; private set; }
         public int CurrentFloor => GameState.CurrentFloor;
+        public GameFlowPhase GamePhase => GameState.CurrentPhase;
         public int RenderSurfaceWidth
         {
             get => _renderSurfaceWidth;
@@ -83,8 +85,12 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         public string FloorDisplay => $"Ebene {GameState.CurrentFloor}/{GameState.FinalFloor}";
         public string ObjectiveText => GameState.ExitUnlocked
-            ? "Ziel erreicht: Gehe zum Ausgang."
-            : $"Ziel: Besiege alle Gegner und den Boss ({GameState.EnemiesDefeatedOnFloor}/{GameState.FloorObjectiveTarget}).";
+            ? GamePhase == GameFlowPhase.LevelComplete
+                ? "Ebene abgeschlossen. Drücke Weiter, um zur nächsten Ebene abzusteigen."
+                : "Ziel erreicht: Gehe zum Ausgang."
+            : GamePhase == GameFlowPhase.PostCombat
+                ? "Sichere Zwischenphase: Du kannst heilen oder Weiter drücken."
+                : $"Ziel: Besiege alle Gegner und den Boss ({GameState.EnemiesDefeatedOnFloor}/{GameState.FloorObjectiveTarget}).";
         public string ExitStatusText => GameState.ExitUnlocked
             ? "Ausgang frei"
             : $"Ausgang versiegelt · Schlüssel {GameState.CollectedKeyIds.Count} · Gegner übrig {GameState.RemainingFloorEnemies}";
@@ -94,7 +100,30 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             ? "Alle Ebenen bezwungen."
             : IsGameOver
                 ? "Die Expedition ist gescheitert."
-                : $"{BiomeDisplayName} · Level {GameState.Player.Level} · {GameState.Player.Weapon.Summary}";
+                : GamePhase switch
+                {
+                    GameFlowPhase.PostCombat => $"{BiomeDisplayName} · sichere Zwischenphase · Level {GameState.Player.Level}",
+                    GameFlowPhase.LevelComplete => $"{BiomeDisplayName} · Ebenenwechsel bereit · Level {GameState.Player.Level}",
+                    GameFlowPhase.CombatStart => $"{BiomeDisplayName} · Kampfstart",
+                    _ => $"{BiomeDisplayName} · Level {GameState.Player.Level} · {GameState.Player.Weapon.Summary}"
+                };
+        public string GamePhaseText => GamePhase switch
+        {
+            GameFlowPhase.Exploration  => "Erkundung",
+            GameFlowPhase.CombatStart   => "Kampfbeginn",
+            GameFlowPhase.PlayerTurn    => "Spielerzug",
+            GameFlowPhase.EnemyTurn     => "Gegnerzug",
+            GameFlowPhase.PostCombat    => "Sichere Zwischenphase",
+            GameFlowPhase.LevelComplete => "Ebenenwechsel",
+            GameFlowPhase.GameOver      => "Game Over",
+            _                          => GamePhase.ToString()
+        };
+        // Sichere Zwischenphasen blockieren keine freie Bewegung, nur Gegnerzüge.
+        public bool CanMove => GamePhase is GameFlowPhase.Exploration
+            or GameFlowPhase.PostCombat
+            or GameFlowPhase.LevelComplete;
+        public bool CanContinue => GamePhase is GameFlowPhase.PostCombat or GameFlowPhase.LevelComplete;
+        public string ContinueButtonText => GamePhase == GameFlowPhase.LevelComplete ? "Nächste Ebene" : "Weiter";
 
         public int DungeonWidth  => GameState.Map.Width;
         public int DungeonHeight => GameState.Map.Height;
@@ -134,14 +163,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         }
 
         // ── Commands ─────────────────────────────────────────────────────────
-        public ICommand MoveUpCommand    => _moveUpCommand    ??= new RelayCommand(_ => MovePlayer(0, -1));
-        public ICommand MoveDownCommand  => _moveDownCommand  ??= new RelayCommand(_ => MovePlayer(0,  1));
-        public ICommand MoveLeftCommand  => _moveLeftCommand  ??= new RelayCommand(_ => MovePlayer(-1, 0));
-        public ICommand MoveRightCommand => _moveRightCommand ??= new RelayCommand(_ => MovePlayer( 1, 0));
+        public ICommand MoveUpCommand    => _moveUpCommand    ??= new RelayCommand(_ => MovePlayer(0, -1), _ => CanMove);
+        public ICommand MoveDownCommand  => _moveDownCommand  ??= new RelayCommand(_ => MovePlayer(0,  1), _ => CanMove);
+        public ICommand MoveLeftCommand  => _moveLeftCommand  ??= new RelayCommand(_ => MovePlayer(-1, 0), _ => CanMove);
+        public ICommand MoveRightCommand => _moveRightCommand ??= new RelayCommand(_ => MovePlayer( 1, 0), _ => CanMove);
         public ICommand RestartGameCommand          => _restartGameCommand          ??= new RelayCommand(_ => RestartGame());
         public ICommand UsePotionCommand            => _usePotionCommand            ??= new RelayCommand(_ => UsePotion(), _ => !IsGameOver);
         public ICommand SaveGameCommand             => _saveGameCommand             ??= new RelayCommand(_ => SaveGame(),  _ => !IsGameOver);
         public ICommand LoadGameCommand             => _loadGameCommand             ??= new RelayCommand(_ => LoadGame());
+        public ICommand ContinueCommand             => _continueCommand             ??= new RelayCommand(_ => ContinueRun(), _ => CanContinue);
         public ICommand SaveAndReturnToMenuCommand  => _saveAndReturnToMenuCommand  ??= new RelayCommand(_ => SaveAndReturnToMenu(), _ => !IsGameOver);
         public ICommand ReturnToMenuCommand         => _returnToMenuCommand         ??= new RelayCommand(_ => ReturnToMenu());
         public ICommand AbandonRunCommand           => _abandonRunCommand           ??= new RelayCommand(_ => RequestAbandonRun());
@@ -190,7 +220,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void MovePlayer(int dx, int dy)
         {
-            if (IsGameOver || IsVictory) return;
+            if (IsGameOver || IsVictory || !CanMove) return;
 
             var newX = GameState.Player.PositionX + dx;
             var newY = GameState.Player.PositionY + dy;
@@ -245,7 +275,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             }
         }
 
-        private void OpenCombat(Enemy enemy) => CombatRequested?.Invoke(enemy);
+        private void OpenCombat(Enemy enemy)
+        {
+            SetGamePhase(GameFlowPhase.CombatStart, $"[Phase] Kampfbeginn gegen {enemy.Name}.");
+            CombatRequested?.Invoke(enemy);
+        }
 
         // ── Actions ──────────────────────────────────────────────────────────
 
@@ -256,15 +290,24 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             var potion = GameState.Player.Inventory.Items.OfType<Potion>().FirstOrDefault();
             if (potion == null)
             {
-                GameState.AddCombatLogEntry("[INFO] Keine Tränke im Inventar!");
+                GameState.AddCombatLogEntry("[Trank] Kein Trank verfügbar.");
                 UpdateCombatLog();
                 return;
             }
 
+            if (GameState.Player.HP >= GameState.Player.MaxHP)
+            {
+                GameState.AddCombatLogEntry("[Trank] HP bereits voll. Kein Trank verbraucht.");
+                UpdateCombatLog();
+                return;
+            }
+
+            var before = GameState.Player.HP;
             var heal = Math.Min(potion.HealingAmount, GameState.Player.MaxHP - GameState.Player.HP);
             GameState.Player.HP += heal;
             GameState.Player.Inventory.Remove(potion);
-            GameState.AddCombatLogEntry($"[HEILUNG] {potion.Name} verwendet: +{heal} HP wiederhergestellt!");
+            GameState.AddCombatLogEntry($"[Trank] Spieler heilt {heal} HP: {before} → {GameState.Player.HP}.");
+            GameState.AddCombatLogEntry("[Trank] Kein Gegnerzug ausgelöst.");
             UpdateAllTiles();
             UpdateCombatLog();
         }
@@ -291,6 +334,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             IsGameOver = false;
             IsVictory  = false;
             SaveDataMapper.ApplyToGameState(GameState, data);
+            SetGamePhase(GameFlowPhase.Exploration);
             CurrentBiome = GameState.CurrentBiome;
             UpdateBiomeDisplay();
             OnPropertyChanged(nameof(CurrentFloor), nameof(FloorDisplay));
@@ -317,6 +361,79 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             AbandonRunRequested?.Invoke();
         }
 
+        public void CompleteCombat(Enemy enemy, bool enemyDefeated)
+        {
+            if (IsGameOver)
+                return;
+
+            UpdateAllTiles();
+
+            if (enemyDefeated && GameState.Player.IsAlive)
+            {
+                IsGameOver = false;
+                IsVictory = false;
+                SetGamePhase(GameFlowPhase.PostCombat, $"[Phase] {enemy.Name} besiegt. Sichere Zwischenphase gestartet.");
+                return;
+            }
+
+            IsVictory = false;
+            IsGameOver = true;
+            SetGamePhase(GameFlowPhase.GameOver, "[Phase] Kampf verloren.");
+        }
+
+        public void DebugFullHeal()
+        {
+            var before = GameState.Player.HP;
+            GameState.Player.HP = GameState.Player.MaxHP;
+            GameState.AddCombatLogEntry($"[Debug] Spieler vollständig geheilt. HP: {before} → {GameState.Player.HP}.");
+            UpdateAllTiles();
+            UpdateCombatLog();
+        }
+
+        public void DebugToggleGodMode()
+        {
+            GameState.IsGodMode = !GameState.IsGodMode;
+            GameState.AddCombatLogEntry(GameState.IsGodMode
+                ? "[Debug] Godmode aktiviert."
+                : "[Debug] Godmode deaktiviert.");
+            UpdateCombatLog();
+        }
+
+        public void DebugAdvanceToNextFloor()
+        {
+            if (GameState.CurrentFloor >= GameState.FinalFloor)
+            {
+                GameState.AddCombatLogEntry("[Debug] Bereits auf der letzten Ebene.");
+                UpdateCombatLog();
+                return;
+            }
+
+            GameState.AddCombatLogEntry($"[Debug] Wechsel zu Ebene {GameState.CurrentFloor + 1}.");
+            UpdateCombatLog();
+            IsGameOver = false;
+            IsVictory = false;
+            AdvanceToNextFloor();
+        }
+
+        private void SetGamePhase(GameFlowPhase phase, string? logMessage = null)
+        {
+            GameState.CurrentPhase = phase;
+            OnPropertyChanged(
+                nameof(GamePhase),
+                nameof(GamePhaseText),
+                nameof(ObjectiveText),
+                nameof(RunStatusText),
+                nameof(CanMove),
+                nameof(CanContinue),
+                nameof(ContinueButtonText));
+            CommandManager.InvalidateRequerySuggested();
+
+            if (logMessage != null)
+                GameState.AddCombatLogEntry(logMessage);
+
+            UpdateCombatLog();
+        }
+
         // ── Game Flow ────────────────────────────────────────────────────────
 
         private void CheckGameConditions()
@@ -334,24 +451,27 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 {
                     IsVictory  = true;
                     IsGameOver = true;
-                    GameState.AddCombatLogEntry("[SIEG] Du hast alle Kerkerebenen bezwungen!");
+                    SetGamePhase(GameFlowPhase.GameOver, "[SIEG] Du hast alle Kerkerebenen bezwungen!");
                 }
                 else
                 {
-                    AdvanceToNextFloor();
+                    SetGamePhase(GameFlowPhase.LevelComplete, "[Phase] Ebene abgeschlossen. Drücke Weiter, um zur nächsten Ebene abzusteigen.");
                 }
                 UpdateCombatLog();
                 return;
             }
 
             if (!GameState.Player.IsAlive)
+            {
                 IsGameOver = true;
+                SetGamePhase(GameFlowPhase.GameOver, "[Phase] Die Expedition ist gescheitert.");
+            }
         }
 
         private void AdvanceToNextFloor()
         {
             var nextFloor = GameState.CurrentFloor + 1;
-            var heal = Math.Min(12 + GameState.CurrentFloor * 4, GameState.Player.MaxHP - GameState.Player.HP);
+            var heal = GameBalance.CalculateFloorTransitionHeal(GameState.Player, GameState.CurrentFloor);
             if (heal > 0)
                 GameState.Player.HP += heal;
 
@@ -359,7 +479,22 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             BuildFloor(nextFloor, resetProgress: false);
             RefreshTileCollection();
             UpdateAllTiles();
-            GameState.AddCombatLogEntry($"[ETAGE] Hinabgestiegen zu {FloorDisplay}. Neues Biotop: {BiomeDisplayName}. Rastpause stellt {heal} HP wieder her.");
+            SetGamePhase(GameFlowPhase.Exploration, $"[ETAGE] Hinabgestiegen zu {FloorDisplay}. Neues Biotop: {BiomeDisplayName}. Rastpause stellt {heal} HP wieder her.");
+        }
+
+        private void ContinueRun()
+        {
+            if (GamePhase == GameFlowPhase.PostCombat)
+            {
+                SetGamePhase(GameFlowPhase.Exploration, "[Phase] Zwischenphase beendet. Du kannst weiter erkunden.");
+                return;
+            }
+
+            if (GamePhase == GameFlowPhase.LevelComplete)
+            {
+                AdvanceToNextFloor();
+                return;
+            }
         }
 
         private void RestartGame()
@@ -377,6 +512,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
             RefreshTileCollection();
             UpdateAllTiles();
+            SetGamePhase(GameFlowPhase.Exploration);
             UpdateCombatLog($"Spiel neu gestartet als {GameState.Player.PlayerClass} auf {FloorDisplay} in {BiomeDisplayName}.");
         }
 
@@ -397,6 +533,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             GameState.ExitUnlocked  = false;
             GameState.BossDefeatedOnFloor   = false;
             GameState.EnemiesDefeatedOnFloor = 0;
+            GameState.CurrentPhase = GameFlowPhase.Exploration;
             CurrentBiome = GameState.CurrentBiome;
             UpdateBiomeDisplay();
 

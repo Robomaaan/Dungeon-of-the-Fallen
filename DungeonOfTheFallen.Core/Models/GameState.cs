@@ -14,6 +14,8 @@ namespace DungeonOfTheFallen.Core.Models
         public int CurrentFloor { get; set; } = 1;
         public int FinalFloor { get; set; } = 4;
         public BiomeType CurrentBiome { get; set; } = BiomeType.Forest;
+        public GameFlowPhase CurrentPhase { get; set; } = GameFlowPhase.Exploration;
+        public bool IsGodMode { get; set; }
         public int FloorObjectiveTarget { get; set; }
         public int EnemiesDefeatedOnFloor { get; set; }
         public bool BossDefeatedOnFloor { get; set; }

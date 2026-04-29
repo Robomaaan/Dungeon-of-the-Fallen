@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -16,6 +17,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
     {
         private readonly CombatViewModel _vm;
         private bool _animationRunning;
+        private bool _allowDebugClose;
+
+        public bool DebugFloorSkipRequested { get; private set; }
 
         // ── Attack animation state ────────────────────────────────────────
         private DispatcherTimer? _attackTimer;
@@ -98,8 +102,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             DataContext = vm;
 
             vm.DiceBattleStarted += OnDiceBattleStarted;
-            vm.DiceRollStarted   += OnDiceRollStarted;   // Trank-Pfad
             vm.PropertyChanged   += Vm_PropertyChanged;
+#if DEBUG
+            PreviewKeyDown += CombatWindow_PreviewKeyDown;
+#endif
 
             BuildPlayerSprite();
             BuildEnemySprite(vm.EnemyType);
@@ -117,7 +123,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
         private void CombatWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             CleanupTimers();
-            if (!_vm.IsGameOver) e.Cancel = true;
+            if (!_vm.IsGameOver && !_allowDebugClose) e.Cancel = true;
         }
 
         private void CleanupTimers()
@@ -395,65 +401,6 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             BeginThrowAnimation(
                 EnemyDiceRotate,  EnemyDiceTranslate,  EnemyDiceScale,
                 -720.0, OnThrowPartComplete);
-        }
-
-        // Trank-Pfad: nur Gegner-Würfel (Single-Die-Fallback)
-        private void OnDiceRollStarted(int value, bool isPlayer)
-        {
-            if (!isPlayer) OnSingleEnemyDiceStarted(value);
-        }
-
-        private void OnSingleEnemyDiceStarted(int enemyRoll)
-        {
-            if (_animationRunning) return;
-            _animationRunning = true;
-            _pendingEnemyRoll = enemyRoll;
-
-            DiceLabel.Text        = $"{_vm.EnemyName} würfelt...";
-            DiceResultLabel.Text  = "";
-            DiceCompareLabel.Text = "";
-
-            ResetDiceTransforms();
-            PlayerDieBorder.Visibility = Visibility.Hidden;
-            EnemyDieBorder.Visibility  = Visibility.Visible;
-            EnemyDiceImage.Source      = null;
-            ShowDiceFrame(EnemyDiceImage, _rng.Next(0, 20));
-
-            _enemyShuffleTimer?.Stop();
-            _enemyShuffleTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(75) };
-            _enemyShuffleTimer.Tick += (_, _) => ShowDiceFrame(EnemyDiceImage, _rng.Next(0, 20));
-            _enemyShuffleTimer.Start();
-
-            var yAnim = new DoubleAnimationUsingKeyFrames();
-            yAnim.KeyFrames.Add(new EasingDoubleKeyFrame(-90,
-                KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(300)))
-                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
-            yAnim.KeyFrames.Add(new EasingDoubleKeyFrame(0,
-                KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(660)))
-                { EasingFunction = new BounceEase { Bounces = 2, Bounciness = 2.5, EasingMode = EasingMode.EaseOut } });
-            EnemyDiceTranslate.BeginAnimation(TranslateTransform.YProperty, yAnim);
-
-            var rotAnim = new DoubleAnimation(0, -540, TimeSpan.FromMilliseconds(660))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
-                FillBehavior   = FillBehavior.Stop
-            };
-            rotAnim.Completed += (_, _) => Dispatcher.Invoke(() =>
-            {
-                _enemyShuffleTimer?.Stop();
-                ShowDiceFrame(EnemyDiceImage, enemyRoll - 1);
-                DiceResultLabel.Text = $"{_vm.EnemyName} würfelt eine {enemyRoll}!";
-
-                var zX = MakeZoomAnim(false, null);
-                var zY = MakeZoomAnim(true,  () => Dispatcher.Invoke(() =>
-                {
-                    _animationRunning = false;
-                    _vm.OnEnemyDiceAnimationComplete();
-                }));
-                EnemyDiceScale.BeginAnimation(ScaleTransform.ScaleXProperty, zX);
-                EnemyDiceScale.BeginAnimation(ScaleTransform.ScaleYProperty, zY);
-            });
-            EnemyDiceRotate.BeginAnimation(RotateTransform.AngleProperty, rotAnim);
         }
 
         // ── Transforms zurücksetzen ───────────────────────────────────────
@@ -951,5 +898,32 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+#if DEBUG
+        private void CombatWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.F9:
+                    _vm.DebugFullHeal();
+                    e.Handled = true;
+                    break;
+                case Key.F10:
+                    _vm.DebugWinCurrentFight();
+                    e.Handled = true;
+                    break;
+                case Key.F11:
+                    DebugFloorSkipRequested = true;
+                    _allowDebugClose = true;
+                    e.Handled = true;
+                    Close();
+                    break;
+                case Key.F12:
+                    _vm.DebugToggleGodMode();
+                    e.Handled = true;
+                    break;
+            }
+        }
+#endif
     }
 }

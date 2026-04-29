@@ -23,7 +23,7 @@
         <KeyBinding Key="F9" Command="{Binding LoadGameCommand}" />
     </Window.InputBindings>
 
-    <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Grid UseLayoutRounding="True" SnapsToDevicePixels="True" Background="#05060a">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -201,8 +201,18 @@
                             <TextBlock Text="LAUFSTATUS" Foreground="#888" FontWeight="Bold" FontSize="11" Margin="0,0,0,4" />
                             <TextBlock Foreground="#cccccc" FontSize="10" TextWrapping="Wrap"
                                        Text="{Binding RunStatusText}" />
+                            <TextBlock Text="PHASE" Foreground="#888" FontWeight="Bold" FontSize="11" Margin="0,8,0,4" />
+                            <TextBlock Foreground="#9cc8ff" FontSize="11" FontWeight="Bold"
+                                       Text="{Binding GamePhaseText}" />
                             <TextBlock Foreground="#9cc8ff" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0"
                                        Text="{Binding DungeonSystemsText}" />
+
+                            <StackPanel Margin="0,10,0,0" Visibility="{Binding CanContinue, Converter={StaticResource BoolToVis}}">
+                                <Button Content="{Binding ContinueButtonText}" Command="{Binding ContinueCommand}"
+                                        FontSize="11" Foreground="#aaffcc" Background="#12261a"
+                                        BorderBrush="#66cc88" BorderThickness="1"
+                                        Padding="6,4" Cursor="Hand" HorizontalAlignment="Stretch" />
+                            </StackPanel>
 
                             <Separator Background="#333" Margin="0,12" />
 

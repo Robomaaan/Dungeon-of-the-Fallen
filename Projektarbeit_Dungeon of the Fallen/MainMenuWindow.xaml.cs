@@ -95,7 +95,19 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
                 Application.Current.Shutdown();
         }
 
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
-            DragMove();
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            try
+            {
+                DragMove();
+            }
+            catch (InvalidOperationException)
+            {
+                Debug.WriteLine("[Menu] DragMove skipped because the primary mouse button was not pressed.");
+            }
+        }
     }
 }

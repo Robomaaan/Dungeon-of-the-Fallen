@@ -8,7 +8,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
     {
         PlayerTurn,
         BothRolling,    // Spieler + Gegner gleichzeitig (Angriff / Skill)
-        EnemyRolling,   // Gegner-Würfel allein (Trank-Gegenzug)
+        EnemyTurn,      // Gegnerzug / Gegenangriff
         Victory,
         Defeat
     }
@@ -23,7 +23,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
     public class CombatViewModel : ViewModelBase
     {
-        private const int MaxCombatLogLines = 8;
+        private const int MaxCombatLogLines = 12;
 
         private readonly GameState _gameState;
         private readonly Enemy _enemy;
@@ -106,9 +106,6 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         /// <summary>Beide Würfel starten gleichzeitig (Angriff / Skill).</summary>
         public event Action<int, int>? DiceBattleStarted;
 
-        /// <summary>Nur Gegner-Würfel (Trank-Gegenzug).</summary>
-        public event Action<int, bool>? DiceRollStarted;
-
         public CombatViewModel(GameState gameState, Enemy enemy)
         {
             _gameState = gameState;
@@ -116,7 +113,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             _combatService = new CombatService(gameState);
 
             AttackCommand = new RelayCommand(_ => StartPlayerAttack(CombatActionType.Attack), _ => IsPlayerTurn);
-            UsePotionCommand = new RelayCommand(_ => StartPotionTurn(), _ => IsPlayerTurn && HasPotions);
+            UsePotionCommand = new RelayCommand(_ => StartPotionTurn(), _ => IsPlayerTurn);
             UseSkillCommand = new RelayCommand(_ => StartPlayerAttack(CombatActionType.UseSkill), _ => IsPlayerTurn);
 
             StatusMessage = $"Ein {_enemy.Name} blockiert den Weg! AC {_enemy.ArmorClass} · {_enemy.Weapon.Damage.Describe()}";
@@ -162,18 +159,54 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         private void StartPotionTurn()
         {
-            if (!IsPlayerTurn || !HasPotions) return;
+            if (!IsPlayerTurn) return;
 
-            var result = _combatService.ExecuteCombat(_enemy, CombatActionType.UsePotion, forcedEnemyRoll: _combatService.RollDice());
+            var result = _combatService.ExecuteCombat(_enemy, CombatActionType.UsePotion);
             ApplyCombatResult(result);
 
             if (result.PlayerDefeated || result.EnemyDefeated)
                 return;
 
-            EnemyDiceValue = result.EnemyRoll;
-            Phase          = CombatPhase.EnemyRolling;
-            StatusMessage  = $"{_enemy.Name} würfelt auf Gegenangriff...";
-            DiceRollStarted?.Invoke(result.EnemyRoll, false);
+            Phase = CombatPhase.PlayerTurn;
+            StatusMessage = result.PlayerUsedPotion
+                ? "Trank sicher eingesetzt. Du bist wieder am Zug."
+                : result.PotionBlockedByFullHealth
+                    ? "HP bereits voll. Kein Trank verbraucht."
+                    : "Kein Trank verfügbar.";
+            NotifyStats();
+        }
+
+        public void DebugFullHeal()
+        {
+            var before = _gameState.Player.HP;
+            _gameState.Player.HP = _gameState.Player.MaxHP;
+            AddLog($"[Debug] Spieler vollständig geheilt. HP: {before} → {_gameState.Player.HP}.");
+            StatusMessage = "Debug-Heilung ausgeführt.";
+            NotifyStats();
+        }
+
+        public void DebugToggleGodMode()
+        {
+            _gameState.IsGodMode = !_gameState.IsGodMode;
+            AddLog(_gameState.IsGodMode
+                ? "[Debug] Godmode aktiviert."
+                : "[Debug] Godmode deaktiviert.");
+            StatusMessage = _gameState.IsGodMode ? "Godmode aktiviert." : "Godmode deaktiviert.";
+            NotifyStats();
+        }
+
+        public void DebugWinCurrentFight()
+        {
+            if (IsGameOver)
+                return;
+
+            _pendingCombatResult = null;
+            var result = _combatService.ForceEnemyDefeat(_enemy);
+            if (result.Messages.Count == 0)
+                return;
+
+            ApplyCombatResult(result);
+            AddLog("[Debug] Aktueller Kampf übersprungen.");
         }
 
         /// <summary>Wird nach Abschluss der simultanen Würfelanimation aufgerufen.</summary>
@@ -234,44 +267,11 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 DiceResultText = string.Empty;
             }
 
-            if (result.PlayerUsedPotion)
-                AddLog($"Du benutzt {result.UsedPotionName}: +{result.HealingDone} HP!");
-
-            if (result.PlayerUsedSkill)
-            {
-                AddLog($"Skill {result.UsedSkillName} ausgelöst!");
-                if (result.HealingDone > 0)
-                    AddLog($"Die Klassenfähigkeit heilt dich um {result.HealingDone} HP.");
-                if (result.DefenseBoostGranted > 0)
-                    AddLog($"AC-Bonus aktiv: +{result.DefenseBoostGranted} für den Gegenschlag.");
-            }
-
-            if (result.PlayerRoll > 0)
-            {
-                var attackText = result.PlayerAttackHit
-                    ? $"Du würfelst {result.PlayerRoll} → Treffer ({result.PlayerTotalAttackRoll} vs AC {_enemy.ArmorClass}) für {result.PlayerDamageDealt} Schaden."
-                    : $"Du würfelst {result.PlayerRoll} → verfehlt ({result.PlayerTotalAttackRoll} vs AC {_enemy.ArmorClass}).";
-                if (result.PlayerCritHit) attackText += " KRIT!";
-                if (result.PlayerCritMiss) attackText += " Patzer!";
-                AddLog(attackText);
-            }
-
-            if (result.EnemyRoll > 0)
-            {
-                var enemyText = result.EnemyAttackHit
-                    ? $"{_enemy.Name} würfelt {result.EnemyRoll} → Treffer ({result.EnemyTotalAttackRoll} vs AC {PlayerArmorClass}) für {result.EnemyDamageDealt} Schaden."
-                    : $"{_enemy.Name} würfelt {result.EnemyRoll} → verfehlt ({result.EnemyTotalAttackRoll} vs AC {PlayerArmorClass}).";
-                if (result.EnemyCritHit) enemyText += " KRIT!";
-                if (result.EnemyCritMiss) enemyText += " Patzer!";
-                AddLog(enemyText);
-            }
+            foreach (var message in result.Messages)
+                AddLog(message);
 
             if (result.EnemyDefeated)
             {
-                AddLog($"+{result.GoldReward} Gold! +{result.XpReward} XP!");
-                if (result.PlayerLeveledUp)
-                    AddLog($"⭐ LEVEL UP! Du bist jetzt Level {_gameState.Player.Level}!");
-
                 Phase = CombatPhase.Victory;
                 StatusMessage = $"{_enemy.Name} besiegt!";
             }
@@ -279,7 +279,20 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             {
                 Phase = CombatPhase.Defeat;
                 StatusMessage = "Du bist gefallen...";
-                AddLog("Du bist gefallen!");
+            }
+            else if (result.PlayerUsedPotion)
+            {
+                StatusMessage = "Trank sicher eingesetzt.";
+            }
+            else if (result.PlayerUsedSkill)
+            {
+                StatusMessage = $"{SkillName} abgeschlossen.";
+            }
+            else if (result.PlayerRoll > 0)
+            {
+                StatusMessage = result.PlayerAttackHit
+                    ? "Treffer gelandet."
+                    : "Angriff verfehlt.";
             }
 
             NotifyStats();

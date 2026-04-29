@@ -80,10 +80,32 @@ namespace DungeonOfTheFallen.Core.Services
                         Label      = t.Weapon.Damage.Label
                     }
                 },
-                DamageModifiers = t.Modifiers ?? new DamageModifierSet()
-            };
+                    DamageModifiers = t.Modifiers ?? new DamageModifierSet()
+                };
+
+            if (floor == 1)
+                ApplyFloorOneBalance(enemy);
 
             return enemy;
+        }
+
+        private static void ApplyFloorOneBalance(Enemy enemy)
+        {
+            if (enemy.IsBoss)
+            {
+                enemy.MaxHP = Math.Max(1, enemy.MaxHP - GameBalance.FloorOneBossHpPenalty);
+                enemy.HP = enemy.MaxHP;
+                enemy.Attack = Math.Max(0, enemy.Attack - GameBalance.FloorOneBossAttackPenalty);
+                enemy.Weapon.AttackBonus = Math.Max(0, enemy.Weapon.AttackBonus - GameBalance.FloorOneBossWeaponAttackPenalty);
+                enemy.Weapon.Damage.Bonus = Math.Max(0, enemy.Weapon.Damage.Bonus - GameBalance.FloorOneBossDamagePenalty);
+                return;
+            }
+
+            enemy.MaxHP = Math.Max(1, enemy.MaxHP - GameBalance.FloorOneNormalEnemyHpPenalty);
+            enemy.HP = enemy.MaxHP;
+            enemy.Attack = Math.Max(0, enemy.Attack - GameBalance.FloorOneNormalEnemyAttackPenalty);
+            enemy.Weapon.AttackBonus = Math.Max(0, enemy.Weapon.AttackBonus - GameBalance.FloorOneNormalEnemyWeaponAttackPenalty);
+            enemy.Weapon.Damage.Bonus = Math.Max(0, enemy.Weapon.Damage.Bonus - GameBalance.FloorOneNormalEnemyDamagePenalty);
         }
     }
 }

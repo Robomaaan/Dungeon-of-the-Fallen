@@ -14,6 +14,9 @@ namespace DungeonOfTheFallen.Core.Services
             if (!_gameState.Player.IsAlive || !enemy.IsAlive)
                 return result;
 
+            result.PlayerHpBefore = _gameState.Player.HP;
+            result.EnemyHpBefore = enemy.HP;
+
             var enemyCanAct = true;
             var temporaryArmorClass = _gameState.Player.ArmorClass;
             PlayerSkill? skill = null;
@@ -21,6 +24,10 @@ namespace DungeonOfTheFallen.Core.Services
             if (actionType == CombatActionType.UsePotion)
             {
                 UsePotion(result);
+                result.PlayerHpAfter = _gameState.Player.HP;
+                result.EnemyHpAfter = enemy.HP;
+                result.EnemyTurnExecuted = false;
+                return result;
             }
             else
             {
@@ -34,7 +41,14 @@ namespace DungeonOfTheFallen.Core.Services
             }
 
             if (enemyCanAct && _gameState.Player.IsAlive)
+            {
                 ResolveEnemyAttack(enemy, result, forcedEnemyRoll ?? RollDice(), temporaryArmorClass);
+                result.EnemyTurnExecuted = true;
+            }
+            else
+            {
+                result.EnemyTurnExecuted = false;
+            }
 
             if (!_gameState.Player.IsAlive)
             {
@@ -42,19 +56,40 @@ namespace DungeonOfTheFallen.Core.Services
                 AddResultMessage(result, $"[DEFEAT] Du wurdest von {enemy.Name} besiegt!");
             }
 
+            result.PlayerHpAfter = _gameState.Player.HP;
+            result.EnemyHpAfter = enemy.HP;
             return result;
         }
 
         public int RollDice() => Dice.RollD20();
+
+        public CombatTurnResult ForceEnemyDefeat(Enemy enemy)
+        {
+            var result = new CombatTurnResult();
+            if (!_gameState.Player.IsAlive || !enemy.IsAlive)
+                return result;
+
+            result.PlayerHpBefore = _gameState.Player.HP;
+            result.EnemyHpBefore = enemy.HP;
+            HandleEnemyDefeat(enemy, result);
+            result.PlayerHpAfter = _gameState.Player.HP;
+            result.EnemyHpAfter = enemy.HP;
+            result.EnemyTurnExecuted = false;
+            return result;
+        }
 
         private void ResolvePlayerAttack(Enemy enemy, CombatTurnResult result, int roll, PlayerSkill? skill, ref int temporaryArmorClass)
         {
             result.PlayerRoll = roll;
             result.PlayerUsedSkill = skill != null;
             result.UsedSkillName = skill?.Name;
+            result.PlayerWeaponAttackBonus = _gameState.Player.Weapon.AttackBonus;
+            result.PlayerSkillAttackBonus = skill?.AttackBonus ?? 0;
+            result.PlayerAttackBonus = _gameState.Player.Attack + result.PlayerWeaponAttackBonus + result.PlayerSkillAttackBonus;
 
             if (skill != null)
             {
+                var healBefore = _gameState.Player.HP;
                 temporaryArmorClass += skill.DefenseBoost;
                 result.DefenseBoostGranted = skill.DefenseBoost;
                 if (skill.Healing > 0)
@@ -62,26 +97,36 @@ namespace DungeonOfTheFallen.Core.Services
                     var heal = Math.Min(skill.Healing, _gameState.Player.MaxHP - _gameState.Player.HP);
                     _gameState.Player.HP += heal;
                     result.HealingDone += heal;
+                    result.PlayerHpAfter = _gameState.Player.HP;
+                    AddResultMessage(result, $"[Spieler] Skill {skill.Name} aktiviert.");
+                    AddResultMessage(result, $"[Spieler] Heilung: +{heal} HP ({healBefore} → {_gameState.Player.HP}).");
                 }
-                AddResultMessage(result, $"[SKILL] {skill.Name} aktiviert! {skill.Description}");
+                else
+                {
+                    AddResultMessage(result, $"[Spieler] Skill {skill.Name} aktiviert.");
+                }
+
+                if (skill.DefenseBoost > 0)
+                    AddResultMessage(result, $"[Spieler] Rüstung für den Gegenzug: +{skill.DefenseBoost} AC.");
             }
 
             result.PlayerCritHit = Dice.IsNatural20(roll);
             result.PlayerCritMiss = Dice.IsNatural1(roll);
             result.PlayerTotalAttackRoll = roll == 1
                 ? 1
-                : roll + _gameState.Player.Attack + _gameState.Player.Weapon.AttackBonus + (skill?.AttackBonus ?? 0);
+                : roll + result.PlayerAttackBonus;
 
             if (result.PlayerCritMiss)
             {
-                AddResultMessage(result, $"[COMBAT] Kritischer Fehlschlag! {enemy.Name} weicht komplett aus.");
+                AddResultMessage(result, $"[Spieler] Angriff: W20={roll} + Angriff {_gameState.Player.Attack} + Waffe {result.PlayerWeaponAttackBonus} + Skill {result.PlayerSkillAttackBonus} = {result.PlayerTotalAttackRoll} → Patzer");
+                AddResultMessage(result, $"[Spieler] {enemy.Name} weicht komplett aus.");
                 return;
             }
 
             result.PlayerAttackHit = result.PlayerCritHit || result.PlayerTotalAttackRoll >= enemy.ArmorClass;
             if (!result.PlayerAttackHit)
             {
-                AddResultMessage(result, $"[COMBAT] Angriff verfehlt! Wurf {result.PlayerTotalAttackRoll} gegen AC {enemy.ArmorClass}.");
+                AddResultMessage(result, $"[Spieler] Angriff: W20={roll} + Angriff {_gameState.Player.Attack} + Waffe {result.PlayerWeaponAttackBonus} + Skill {result.PlayerSkillAttackBonus} = {result.PlayerTotalAttackRoll} → verfehlt (AC {enemy.ArmorClass})");
                 return;
             }
 
@@ -93,11 +138,14 @@ namespace DungeonOfTheFallen.Core.Services
             var adjustedDamage = enemy.DamageModifiers.Apply(primaryType, damage);
             result.PlayerDamageModifierText = enemy.DamageModifiers.Describe(primaryType);
             result.PlayerDamageDealt = adjustedDamage;
-            enemy.HP -= adjustedDamage;
+            enemy.HP = Math.Max(0, enemy.HP - adjustedDamage);
+            result.EnemyHpAfter = enemy.HP;
 
             var critText = result.PlayerCritHit ? " Kritischer Treffer!" : string.Empty;
             var modifierText = result.PlayerDamageModifierText != "Normal" ? $" ({result.PlayerDamageModifierText})" : string.Empty;
-            AddResultMessage(result, $"[COMBAT] Du triffst {enemy.Name} mit {_gameState.Player.Weapon.Name} für {adjustedDamage} {primaryType}-Schaden.{critText}{modifierText}");
+            AddResultMessage(result, $"[Spieler] Angriff: W20={roll} + Angriff {_gameState.Player.Attack} + Waffe {result.PlayerWeaponAttackBonus} + Skill {result.PlayerSkillAttackBonus} = {result.PlayerTotalAttackRoll} → Treffer{critText}");
+            AddResultMessage(result, $"[Spieler] Schaden: {adjustedDamage} {primaryType}-Schaden{modifierText}");
+            AddResultMessage(result, $"[Gegner] HP: {result.EnemyHpBefore} → {enemy.HP}");
         }
 
         private void ResolveEnemyAttack(Enemy enemy, CombatTurnResult result, int roll, int targetArmorClass)
@@ -105,30 +153,45 @@ namespace DungeonOfTheFallen.Core.Services
             result.EnemyRoll = roll;
             result.EnemyCritHit = Dice.IsNatural20(roll);
             result.EnemyCritMiss = Dice.IsNatural1(roll);
-            result.EnemyTotalAttackRoll = roll == 1 ? 1 : roll + enemy.Attack + enemy.Weapon.AttackBonus;
+            result.EnemyWeaponAttackBonus = enemy.Weapon.AttackBonus;
+            result.EnemyAttackBonus = enemy.Attack + result.EnemyWeaponAttackBonus;
+            result.EnemyTotalAttackRoll = roll == 1 ? 1 : roll + result.EnemyAttackBonus;
 
             if (result.EnemyCritMiss)
             {
-                AddResultMessage(result, $"[COMBAT] {enemy.Name} patzt beim Angriff.");
+                AddResultMessage(result, $"[Gegner] Angriff: W20={roll} + Angriff {enemy.Attack} + Waffe {result.EnemyWeaponAttackBonus} = {result.EnemyTotalAttackRoll} → Patzer");
                 return;
             }
 
             result.EnemyAttackHit = result.EnemyCritHit || result.EnemyTotalAttackRoll >= targetArmorClass;
             if (!result.EnemyAttackHit)
             {
-                AddResultMessage(result, $"[COMBAT] {enemy.Name} verfehlt dich. Wurf {result.EnemyTotalAttackRoll} gegen AC {targetArmorClass}.");
+                AddResultMessage(result, $"[Gegner] Angriff: W20={roll} + Angriff {enemy.Attack} + Waffe {result.EnemyWeaponAttackBonus} = {result.EnemyTotalAttackRoll} → verfehlt (AC {targetArmorClass})");
                 return;
             }
 
             var damage = enemy.Weapon.Damage.Roll(result.EnemyCritHit);
+            if (_gameState.IsGodMode)
+            {
+                result.EnemyDamageModifierText = "Godmode";
+                result.EnemyDamageDealt = 0;
+                AddResultMessage(result, $"[Gegner] Angriff: W20={roll} + Angriff {enemy.Attack} + Waffe {result.EnemyWeaponAttackBonus} = {result.EnemyTotalAttackRoll} → Treffer");
+                AddResultMessage(result, $"[GODMODE] Schaden ignoriert.");
+                AddResultMessage(result, $"[Spieler] HP: {_gameState.Player.HP} → {_gameState.Player.HP}");
+                return;
+            }
+
             var adjustedDamage = _gameState.Player.DamageModifiers.Apply(enemy.Weapon.Damage.DamageType, damage);
             result.EnemyDamageModifierText = _gameState.Player.DamageModifiers.Describe(enemy.Weapon.Damage.DamageType);
             result.EnemyDamageDealt = adjustedDamage;
-            _gameState.Player.HP -= adjustedDamage;
+            _gameState.Player.HP = Math.Max(0, _gameState.Player.HP - adjustedDamage);
+            result.PlayerHpAfter = _gameState.Player.HP;
 
             var critText = result.EnemyCritHit ? " Kritischer Treffer!" : string.Empty;
             var modifierText = result.EnemyDamageModifierText != "Normal" ? $" ({result.EnemyDamageModifierText})" : string.Empty;
-            AddResultMessage(result, $"[COMBAT] {enemy.Name} trifft dich für {adjustedDamage} {enemy.Weapon.Damage.DamageType}-Schaden.{critText}{modifierText}");
+            AddResultMessage(result, $"[Gegner] Angriff: W20={roll} + Angriff {enemy.Attack} + Waffe {result.EnemyWeaponAttackBonus} = {result.EnemyTotalAttackRoll} → Treffer{critText}");
+            AddResultMessage(result, $"[Gegner] Schaden: {adjustedDamage} {enemy.Weapon.Damage.DamageType}-Schaden{modifierText}");
+            AddResultMessage(result, $"[Spieler] HP: {result.PlayerHpBefore} → {_gameState.Player.HP}");
         }
 
         private void UsePotion(CombatTurnResult result)
@@ -136,17 +199,29 @@ namespace DungeonOfTheFallen.Core.Services
             var potion = _gameState.Player.Inventory.Items.OfType<Potion>().FirstOrDefault();
             if (potion == null)
             {
-                AddResultMessage(result, "[INFO] Kein Trank im Inventar!");
+                AddResultMessage(result, "[Trank] Kein Trank verfügbar.");
                 return;
             }
 
+            if (_gameState.Player.HP >= _gameState.Player.MaxHP)
+            {
+                result.PotionBlockedByFullHealth = true;
+                AddResultMessage(result, "[Trank] HP bereits voll. Kein Trank verbraucht.");
+                return;
+            }
+
+            var before = _gameState.Player.HP;
             var heal = Math.Min(potion.HealingAmount, _gameState.Player.MaxHP - _gameState.Player.HP);
             _gameState.Player.HP += heal;
             _gameState.Player.Inventory.Remove(potion);
             result.PlayerUsedPotion = true;
+            result.PotionConsumed = true;
             result.HealingDone = heal;
             result.UsedPotionName = potion.Name;
-            AddResultMessage(result, $"[HEAL] Trank benutzt: {potion.Name} (+{heal} HP)");
+            result.PlayerHpAfter = _gameState.Player.HP;
+            AddResultMessage(result, $"[Trank] Spieler heilt {heal} HP.");
+            AddResultMessage(result, $"[Trank] HP: {before} → {_gameState.Player.HP}");
+            AddResultMessage(result, "[Trank] Kein Gegnerzug ausgelöst.");
         }
 
         private void HandleEnemyDefeat(Enemy enemy, CombatTurnResult result)
@@ -159,23 +234,35 @@ namespace DungeonOfTheFallen.Core.Services
             if (enemy.IsBoss)
             {
                 _gameState.BossDefeatedOnFloor = true;
-                AddResultMessage(result, "[OBJECTIVE] Der Boss der Ebene ist gefallen!");
+                AddResultMessage(result, "[Kampf] Boss besiegt.");
             }
 
-            AddResultMessage(result, $"[VICTORY] {enemy.Name} besiegt!");
-            AddResultMessage(result, $"[XP] +{enemy.XpReward} Erfahrung!");
-            AddResultMessage(result, $"[LOOT] +{enemy.GoldReward} Gold!");
-            result.PlayerLeveledUp = PlayerProgressionService.GrantXp(_gameState.Player, enemy.XpReward, result.Messages);
+            AddResultMessage(result, "[Kampf] Gegner besiegt.");
+            AddResultMessage(result, $"[Belohnung] +{enemy.XpReward} XP, +{enemy.GoldReward} Gold.");
 
             if (enemy.IsBoss)
             {
                 _gameState.Player.Inventory.Add(new Potion("Boss Draught", 50));
-                AddResultMessage(result, "[LOOT] Boss-Trank erhalten.");
+                AddResultMessage(result, "[Belohnung] Boss-Trank erhalten.");
             }
             else if (_gameState.EnemiesDefeatedOnFloor % 2 == 0)
             {
                 _gameState.Player.Inventory.Add(new Potion("Field Potion", 20));
-                AddResultMessage(result, "[LOOT] Ein Feldtrank fällt aus dem Kampf.");
+                AddResultMessage(result, "[Belohnung] Ein Feldtrank fällt aus dem Kampf.");
+            }
+
+            var recovery = GameBalance.CalculatePostCombatHeal(_gameState.Player);
+            if (recovery > 0)
+            {
+                var before = _gameState.Player.HP;
+                var actualHeal = Math.Min(recovery, _gameState.Player.MaxHP - _gameState.Player.HP);
+                if (actualHeal > 0)
+                {
+                    _gameState.Player.HP += actualHeal;
+                    result.PostCombatHeal = actualHeal;
+                    result.PlayerHpAfter = _gameState.Player.HP;
+                    AddResultMessage(result, $"[Belohnung] Ruhepause: +{actualHeal} HP ({before} → {_gameState.Player.HP}).");
+                }
             }
 
             _gameState.Enemies.Remove(enemy);
@@ -183,14 +270,17 @@ namespace DungeonOfTheFallen.Core.Services
             if (tile != null)
                 tile.Enemy = null;
 
+            result.PlayerLeveledUp = PlayerProgressionService.GrantXp(_gameState.Player, enemy.XpReward, result.Messages);
+            result.PlayerHpAfter = _gameState.Player.HP;
+
             if (_gameState.BossDefeatedOnFloor && _gameState.EnemiesDefeatedOnFloor >= _gameState.FloorObjectiveTarget)
             {
                 _gameState.ExitUnlocked = true;
-                AddResultMessage(result, "[OBJECTIVE] Boss besiegt und Ebene gesäubert. Der Exit ist offen!");
+                AddResultMessage(result, "[Phase] Ebene gesäubert. Der Exit ist offen.");
             }
             else
             {
-                AddResultMessage(result, $"[OBJECTIVE] Noch {_gameState.RemainingFloorEnemies} Gegner bis zum Exit.");
+                AddResultMessage(result, $"[Phase] Sichere Zwischenphase gestartet. Noch {_gameState.RemainingFloorEnemies} Gegner bis zum Exit.");
             }
         }
 

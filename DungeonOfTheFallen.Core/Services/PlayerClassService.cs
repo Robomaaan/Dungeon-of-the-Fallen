@@ -109,7 +109,8 @@ namespace DungeonOfTheFallen.Core.Services
             player.Inventory.Clear();
             player.ClassSkill = profile.ClassSkill;
 
-            for (var i = 0; i < profile.StartingPotions; i++)
+            var startingPotions = Math.Max(profile.StartingPotions, GameBalance.MinimumStartingPotions);
+            for (var i = 0; i < startingPotions; i++)
                 player.Inventory.Add(new Potion("Heiltrank", 25));
         }
     }

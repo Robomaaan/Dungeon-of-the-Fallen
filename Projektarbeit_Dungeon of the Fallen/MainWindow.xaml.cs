@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using DungeonOfTheFallen.Core.Models;
 using Projektarbeit_Dungeon_of_the_Fallen.ViewModels;
 
@@ -14,6 +15,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             vm.CombatRequested           += OnCombatRequested;
             vm.ReturnToMainMenuRequested += OnReturnToMainMenu;
             vm.AbandonRunRequested       += OnAbandonRun;
+#if DEBUG
+            PreviewKeyDown += MainWindow_PreviewKeyDown;
+#endif
         }
 
         private void OnCombatRequested(Enemy enemy)
@@ -23,7 +27,14 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             var combatVm = new CombatViewModel(vm.GameState, enemy);
             var combatWindow = new CombatWindow(combatVm) { Owner = this };
             combatWindow.ShowDialog();
-            // UpdateAllTiles/UpdateCombatLog werden nach ShowDialog vom ViewModel selbst aufgerufen
+
+            if (combatWindow.DebugFloorSkipRequested)
+            {
+                vm.DebugAdvanceToNextFloor();
+                return;
+            }
+
+            vm.CompleteCombat(enemy, combatVm.IsVictory);
         }
 
         private void OnReturnToMainMenu()
@@ -50,5 +61,29 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
                 Close();
             }
         }
+
+#if DEBUG
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            switch (e.Key)
+            {
+                case Key.F9:
+                    vm.DebugFullHeal();
+                    e.Handled = true;
+                    break;
+                case Key.F11:
+                    vm.DebugAdvanceToNextFloor();
+                    e.Handled = true;
+                    break;
+                case Key.F12:
+                    vm.DebugToggleGodMode();
+                    e.Handled = true;
+                    break;
+            }
+        }
+#endif
     }
 }

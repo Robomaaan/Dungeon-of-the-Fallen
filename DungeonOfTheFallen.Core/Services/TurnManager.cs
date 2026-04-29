@@ -51,7 +51,16 @@ namespace DungeonOfTheFallen.Core.Services
             ApplyPuzzle(targetTile);
 
             if (_gameState.Player.IsAlive)
-                ExecuteEnemyTurns();
+            {
+                if (_gameState.CurrentPhase == GameFlowPhase.Exploration)
+                {
+                    ExecuteEnemyTurns();
+                }
+                else
+                {
+                    _gameState.AddCombatLogEntry($"[Phase] {_gameState.CurrentPhase} – keine Gegneraktion ausgelöst.");
+                }
+            }
 
             return true;
         }
@@ -191,8 +200,14 @@ namespace DungeonOfTheFallen.Core.Services
                 case TileType.LavaTrap:
                 case TileType.SpikeTrap:
                 case TileType.DivineTrap:
+                    if (_gameState.IsGodMode)
+                    {
+                        _gameState.AddCombatLogEntry("[Debug] Godmode aktiv - Falle ignoriert.");
+                        break;
+                    }
+
                     var dmg = Math.Max(1, Dice.RollD6() + _gameState.CurrentFloor - 1);
-                    _gameState.Player.HP -= dmg;
+                    _gameState.Player.HP = Math.Max(0, _gameState.Player.HP - dmg);
                     _gameState.AddCombatLogEntry($"[FALLE] Du hast eine Falle ausgelöst! -{dmg} HP!");
                     break;
                 case TileType.KeyPedestal:
