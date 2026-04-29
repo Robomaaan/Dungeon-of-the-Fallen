@@ -1,343 +1,157 @@
-# ⚔️ DungeonOfTheFallen - WPF Dungeon Crawler
+# Dungeon of the Fallen
 
-## 📋 Übersicht
+Dungeon of the Fallen ist ein WPF-/C#-Dungeon-Crawler auf .NET 8. Der aktuelle Stand ist ein spielbarer MVP mit klar getrenntem Dungeon-Flow, sicherer Zwischenphase nach Kämpfen, zentralem Balancing und Debug-Hotkeys für Entwicklungs- und Testzwecke.
 
-**DungeonOfTheFallen** ist ein rundenbasiertes 2D-Dungeon-Crawler-Spiel im Fantasy-Stil, entwickelt als Projektarbeit mit **C# / .NET 8 / WPF**.
+## Projektüberblick
 
-Der aktuelle Stand ist ein spielbarer MVP mit Hauptmenü, Dungeon-Grid, Bewegung, Gegnern, Kampffenster, Loot, Tränken, Fallen, Heilungsraum, Save/Load und Sieg/Niederlage.
+- WPF-Oberfläche mit MVVM-Struktur
+- Zwei Hauptprojekte: Core-Logik und WPF-Präsentation
+- Hauptmenü, Klassenauswahl, Run-Start, Dungeon-Erkundung, Kampf, Loot, Save/Load
+- Mehrere Ebenen mit sauberem Übergang zwischen Exploration, Kampf und Belohnungsphase
+- Floor 1 ist bewusst so balanciert, dass Ebene 2 realistisch erreichbar ist
 
-**Visuelle Richtung**: Düsteres Fantasy-Thema, Top-Down 2D, inspiriert durch *Crown Trick* und *Shattered Pixel Dungeon*.
+## Spielprozess
 
----
+1. Im Hauptmenü wird ein neuer Run gestartet oder ein Save geladen.
+2. In der Klassenauswahl wird die Spielerklasse festgelegt.
+3. Der Run beginnt auf Ebene 1 in der Explorationsphase.
+4. Der Spieler bewegt sich durch den Dungeon, sammelt Loot ein, öffnet Räume und löst Tile-Effekte aus.
+5. Beim Kontakt mit einem Gegner wechselt das Spiel in den Kampfbeginn und öffnet das Kampffenster.
+6. Im Kampf laufen die Phasen Spielerzug, Würfelauflösung, Gegnerzug, Sieg oder Niederlage.
+7. Nach einem Sieg folgt keine harte Fortsetzung, sondern eine sichere Post-Combat-Zwischenphase.
+8. In dieser Zwischenphase kann der Spieler gefahrlos heilen, bevor er mit Weiter erneut loszieht.
+9. Sobald die Ebene gesäubert ist, wechselt das Spiel in `LevelComplete`.
+10. Mit Weiter wird die nächste Ebene geladen und der Run läuft in `Exploration` weiter.
+11. Bei Niederlage oder Run-Abbruch endet der Run sauber und das Spiel kann ins Hauptmenü zurückkehren.
 
-## 🛠️ Technologie-Stack
+## Zustandsmodell
 
-| Komponente | Details |
+### Dungeon-Flow
+
+Die globale Laufsteuerung arbeitet mit diesen Phasen:
+
+| Phase | Bedeutung |
 |---|---|
-| **Sprache** | C# (.NET 8) |
-| **UI-Framework** | WPF (Windows Presentation Foundation) |
-| **Architektur** | MVVM (Model-View-ViewModel), ohne externe Frameworks |
-| **Persistenz** | XML-Serialisierung über `SaveData` + `XmlGameRepository` |
-| **Plattform** | Windows Desktop (.NET 8 Windows) |
+| `Exploration` | Normales Bewegen und Erkunden |
+| `CombatStart` | Kampf wird gestartet |
+| `PlayerTurn` | Spieler darf handeln |
+| `EnemyTurn` | Gegnerzug ist ausdrücklich vorgesehen |
+| `PostCombat` | Sichere Zwischenphase nach einem Sieg |
+| `LevelComplete` | Ebene abgeschlossen, Weiter zur nächsten Ebene |
+| `GameOver` | Run beendet |
 
----
+### Kampf-Flow
 
-## 📁 Projektstruktur
+Das Kampffenster verwendet zusätzlich eine interne Kampfsteuerung:
 
-```
-Projektarbeit_Dungeon of the Fallen/
-├── DungeonOfTheFallen.Core/               # Domänenlogik & Game-Services
-│   ├── Models/                            # Domänenmodelle
-│   │   ├── GameState.cs                   # Zentrale Spielzustand-Verwaltung
-│   │   ├── Player.cs                      # Spielercharakter (HP, XP, Inventory, Stats)
-│   │   ├── Enemy.cs                       # Gegner (Typ, Stats, Rewards)
-│   │   ├── Tile.cs & DungeonMap.cs        # Dungeon-Grid-Logik
-│   │   ├── Item.cs, Potion.cs             # Loot & Inventar
-│   │   ├── TileType.cs                    # Floor, Wall, Exit, Spawn, Trap, HealingRoom
-│   │   ├── EnemyType.cs                   # Goblin, Spider, Skeleton, Orc, Zombie, Troll, Ogre, Dragon, DemonLord, Lich, Boss
-│   │   └── ItemType.cs                    # Gold, Potion, Key
-│   │
-│   ├── Services/                          # Game Services
-│   │   ├── TurnManager.cs                 # Bewegung, Tile-Effekte, Enemy Turns
-│   │   └── CombatService.cs               # Wiederverwendbare Kampf-Logik
-│   │
-│   └── Persistence/                       # Repository-Pattern
-│       ├── IGameRepository.cs             # Save/Load-Interface
-│       ├── SaveData.cs                    # XML-Save-Daten
-│       └── XmlGameRepository.cs           # XML-Implementation
-│
-├── Projektarbeit_Dungeon of the Fallen/   # WPF-Präsentation
-│   ├── ViewModels/
-│   │   ├── ViewModelBase.cs               # Basis mit INotifyPropertyChanged
-│   │   ├── RelayCommand.cs                # Command-Implementation
-│   │   ├── MainViewModel.cs               # Haupt-Game-Flow & Map
-│   │   ├── CombatViewModel.cs             # Kampfablauf mit Würfeln
-│   │   ├── PlayerViewModel.cs             # Player Status Display
-│   │   └── TileViewModel.cs               # Einzeltile-Rendering
-│   │
-│   ├── MainMenuWindow.xaml & .cs          # Startmenü
-│   ├── MainWindow.xaml & .cs              # Hauptspiel
-│   ├── CombatWindow.xaml & .cs            # Kampfansicht
-│   ├── App.xaml & .cs
-│   │
-│   └── Converters/
-│       ├── BoolToVisibilityConverter.cs
-│       └── VictoryTextConverter.cs
-│
-├── Projektarbeit_Dungeon of the Fallen.sln
-└── README.md
-```
-
----
-
-## 🎮 Aktueller Entwicklungsstand
-
-Der aktuelle Branch enthält den kompletten spielbaren MVP.
-
-### **Donnerstag (Do)** ✅ ABGESCHLOSSEN
-- ✅ Solution mit zwei Projekten aufgebaut
-- ✅ Core-Klassenbibliothek mit allen Domänenmodellen
-- ✅ Enums: `TileType`, `EnemyType`, `ItemType`
-- ✅ Modelle: `Player`, `Enemy`, `Tile`, `DungeonMap`, `GameState`, `Item`, `Potion`, `Inventory`
-- ✅ Build erfolgreich
-
-### **Freitag (Fr)** ✅ ABGESCHLOSSEN
-- ✅ MVVM-Grundgerüst (`ViewModelBase`, `RelayCommand`)
-- ✅ `MainViewModel`, `TileViewModel` und `PlayerViewModel`
-- ✅ Hauptfenster mit `ItemsControl` + `UniformGrid` für das 20x20 Grid
-- ✅ Dunkles Fantasy-Farbschema
-- ✅ Spielerfigur, Gegner, Items und Wände sichtbar im Grid
-- ✅ Statuspanel und Kampflog angebunden
-
-### **Montag (Mo)** ✅ ABGESCHLOSSEN
-- ✅ `TurnManager` für Bewegung und Spielzug-Logik
-- ✅ Wand-Kollisionslogik
-- ✅ Gegner-Spawns
-- ✅ Tile-Effekte für Fallen und Heilungsraum
-- ✅ Gegner-Züge mit Jagd- und Zufallsverhalten
-- ✅ Item-Pickups und Loot
-
-### **Dienstag (Di)** ✅ ABGESCHLOSSEN
-- ✅ `CombatWindow` mit Würfelkampf
-- ✅ `CombatViewModel` mit Kampfphasen
-- ✅ Loot-System, XP und Level-Up
-- ✅ Boss-Gegner
-- ✅ Sieg- und Niederlage-Bedingungen
-- ✅ Kampflog aktualisiert sich live
-
-### **Mittwoch (Mi)** ✅ ABGESCHLOSSEN
-- ✅ XML Save/Load
-- ✅ `MainMenuWindow`
-- ✅ UI-Polish und Bugfixes
-- ✅ README an den aktuellen Stand angepasst
-
----
-
-## 🚀 MVP-Features
-
-| Feature | Status |
+| Phase | Bedeutung |
 |---|---|
-| 20x20 Dungeon-Grid | ✅ |
-| Spielerfigur sichtbar | ✅ |
-| Spieler-Bewegung | ✅ |
-| Gegner (biomabhängige Gegner- und Bossliste) | ✅ |
-| Gegner-KI | ✅ |
-| Rundenbasierte Züge | ✅ |
-| Direkter Kampf | ✅ |
-| HP/XP/Level-System | ✅ |
-| Loot (Gold, Tränke) | ✅ |
-| Boss-Gegner | ✅ |
-| Dungeon-Ausgang | ✅ |
-| Kampflog | ✅ |
-| Sieg/Niederlage | ✅ |
-| Save/Load | ✅ |
-| Main Menu | ✅ |
+| `PlayerTurn` | Spieleraktion wählen |
+| `BothRolling` | Würfelanimation läuft |
+| `EnemyTurn` | Gegner reagiert im Kampf |
+| `Victory` | Gegner besiegt |
+| `Defeat` | Spieler besiegt |
 
----
+## Wichtige Regeln
 
-## 💻 Installation & Build
+- Ein Gegner darf nur dann angreifen, wenn der aktive Flow wirklich einen Gegnerzug vorsieht.
+- Tränke sind eine freie Sicherheitsaktion und lösen keinen direkten Gegnerangriff aus.
+- Loot einsammeln, Menüaktionen, Save/Load oder Run-Abbruch lösen keinen automatischen EnemyTurn aus.
+- Nach einem Sieg entsteht zuerst die sichere Post-Combat-Phase, erst danach geht es bewusst weiter.
+- Der Übergang zur nächsten Ebene passiert nur über eine explizite Continue-Aktion.
 
-### Voraussetzungen
-- **.NET 8 SDK** installiert
-- **Visual Studio 2022** oder **VS Code** mit C#-Support
-- **Windows 10/11** (WPF-spezifisch)
+## Kampf- und Tranklogik
 
-### Build & Run
+- Der Kampf protokolliert Würfelwurf, Boni, Trefferstatus, Schaden und HP-Änderungen.
+- Tränke schreiben eigene Logeinträge, zum Beispiel:
+  - `[Trank] Spieler heilt 12 HP.`
+  - `[Trank] Kein Gegnerzug ausgelöst.`
+  - `[Trank] HP bereits voll. Kein Trank verbraucht.`
+  - `[Trank] Kein Trank verfügbar.`
+- Bei voller HP wird kein Trank verbraucht.
+- Ein Trank verursacht weder Würfelwurf noch gegnerischen Gegenschaden.
 
-```bash
-# Repository klonen
-git clone https://github.com/Robomaaan/Dungeon-of-the-Fallen.git
-cd "Dungeon-of-the-Fallen"
+## Balancing von Ebene 1
 
-# Build
-dotnet build "Projektarbeit_Dungeon of the Fallen.sln"
+Die erste Ebene wurde bewusst entschärft, damit normale Runs nicht regelmäßig vor Ebene 2 enden.
 
-# Run
-dotnet run --project "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon of the Fallen.csproj"
-```
+- Starttränke: mindestens 2
+- Ebene 1: 2 normale Gegner plus Boss
+- Gegner-HP und Gegner-Schaden auf Ebene 1 reduziert
+- Boss-Schaden auf Ebene 1 reduziert
+- Nach Kämpfen gibt es eine zentrale Heilung von rund 15 Prozent der MaxHP, begrenzt auf einen sinnvollen Bereich
+- Beim Ebenenwechsel gibt es eine zusätzliche sichere Heilung
+- Belohnungen wie Feldtränke und Boss-Tränke stützen den Run zusätzlich
 
-Oder einfach die Solution in Visual Studio öffnen und F5 drücken.
+Die zentralen Werte liegen in `DungeonOfTheFallen.Core/Services/GameBalance.cs`.
 
----
+## Debug-Hotkeys
 
-## 🎨 Farbschema (Dungeon-Rendering)
+Die folgenden Tasten sind nur in `DEBUG` aktiv:
 
-```
-Hintergrund:    #0a0a0a (Schwarz)
-Panel:          #1a1a1a (Dunkelgrau)
-Wand:           #333333 (Grau)
-Floor:          #1a1a1a (Dunkelgrau)
-Exit:           #FFD700 (Goldenes Ziel-Feld)
-Spawn:          #00AA00 (Grün)
-Trap:           #AA0000 (Rot)
-Healing Room:   #0088FF (Blau)
-Text:           #e0e0e0 (Hellgrau)
-Titel:          #FFD700 (Gold)
-```
+- `F9` = Spieler vollständig heilen
+- `F10` = aktuellen Kampf sofort gewinnen
+- `F11` = direkt zur nächsten Ebene wechseln
+- `F12` = Godmode an- oder ausschalten
 
----
+Jede Debug-Aktion erzeugt einen Logeintrag. Im Debug-Build kann `F9` als Entwickler-Hotkey die normale Ladebelegung überlagern.
 
-## 🏗️ MVVM-Architektur
+## Steuerung
 
-```
-App.xaml.cs
-    ↓
-MainMenuWindow.xaml
-    ↓ (Neues Spiel / Laden)
-MainWindow.xaml
-    ↓ (DataContext)
-MainViewModel
-    ├── GameState (Player, Map, Enemies, CombatLog)
-    ├── PlayerViewModel (Status Display)
-    └── ObservableCollection<TileViewModel>
-         └── [Jede TileViewModel bindet auf Tile-Modell]
-             ├── DisplayText (P/E/I/█)
-             └── BackgroundColor (je nach TileType)
+- `WASD` oder Pfeiltasten = bewegen
+- `P` = Trank benutzen
+- `F5` = speichern
+- Laden über die UI-Aktion im Hauptmenü bzw. das Laden im Spiel
+- Weiter-Button = sichere Zwischenphase verlassen oder nächste Ebene starten
+- Hauptmenü- und Run-Abbruch-Buttons = Run kontrolliert verlassen
 
-CombatWindow.xaml
-    ↓ (DataContext)
-CombatViewModel
-    ├── Würfelanimation
-    ├── Angriff / Potion-Zug
-    └── Rückgabe an `MainWindow`
-```
+## Build & Run
 
-**Datenfluss:**
-1. Spieler-Input oder Fenster-Event → Command / Event
-2. ViewModel verarbeitet die Logik
-3. `GameState` wird aktualisiert
-4. UI-Bindings aktualisieren automatisch
-5. `CombatWindow` meldet das Ergebnis nach der Animation zurück
+Voraussetzungen:
 
----
+- .NET 8 SDK
+- Windows 10/11
+- Visual Studio 2022 oder ein kompatibler Editor
 
-## 🧱 Phase-2 Foundation (aktueller Architekturstand)
+Build:
 
-Der aktuelle Stand wurde intern auf eine erweiterbare Foundation vorbereitet:
-
-- zentralere Combat-Abwicklung über `CombatService`
-- `CombatTurnResult` als Rückgabeobjekt für UI/Animation
-- gemeinsame Stats-Basis über `CombatantStats`
-- `EnemyFactory` für zentrale Gegnererzeugung
-- `EnemySpawnService` für biomebasierte Gegnerroster
-- Save-System auf **Version 2** erweitert
-- `SaveDataMapper` kapselt Save/Load-Mapping aus dem ViewModel
-
-Aktuelle Gegnerfamilien:
-- Goblin
-- Spider
-- Skeleton
-- Orc
-- Zombie
-- Troll
-- Ogre
-- Dragon
-- DemonLord
-- Lich
-- Boss
-
-Geplante nächste Ausbaustufen:
-- `PlayerProgressionService`
-- `LootService`
-- `EnemySpawnService`
-- Save-Migrationen
-
-Siehe auch: `docs/phase-2-foundation-plan.md`
-
-## 📝 Bekannte Einschränkungen (MVP)
-
-- **Prozeduraler Generator**: Noch nicht implementiert → Hardcoded Test-Map
-- **Sound/Musik**: Nicht vorhanden
-- **Mehrere Ebenen**: Nicht im MVP
-- **Automatisierte Tests**: Noch keine Unit-Tests vorhanden
-
----
-
-## 🧪 Tests
-
-Derzeit keine Unit-Tests implementiert. Der Build ist aktuell erfolgreich.
-
----
-
-## 📄 Lizenz
-
-Dieses Projekt ist Lernprojekt einer Projektarbeitswoche. Frei verwendbar für Lehrzwecke.
-
----
-
-## 👨‍💻 Entwickler
-
-Robo (Projektarbeit, April 2026)
-
----
-
-**Letztes Update**: Donnerstag, 23. April 2026  
-**Aktueller Branch**: `main`  
-**Build Status**: ✅ Passing
-
-## 💾 Domänenmodell (Kurzüberblick)
-
-### Kernklassen
-```csharp
-public class GameState
-{
-    public Player Player { get; }
-    public DungeonMap Map { get; }
-    public List<Enemy> Enemies { get; } = new();
-    public List<string> CombatLog { get; } = new();
-}
-
-public class TurnManager
-{
-    // Bewegt den Spieler, löst Tile-Effekte aus und führt Enemy Turns aus
-}
-```
-
----
-
-## 🛠️ Build & Run
-
-### Bauen
 ```bash
 dotnet build "Projektarbeit_Dungeon of the Fallen.sln"
 ```
 
-### Ausführen
+Run:
+
 ```bash
 dotnet run --project "Projektarbeit_Dungeon of the Fallen/Projektarbeit_Dungeon of the Fallen.csproj"
 ```
 
----
+## Projektstruktur
 
-## 📝 Projektwochen-Fortschritt
+```text
+.
+├── DungeonOfTheFallen.Core/              # Domänenlogik, Kampf, Balancing, Persistenz
+├── Projektarbeit_Dungeon of the Fallen/   # WPF-Oberfläche, Fenster, ViewModels
+├── docs/                                  # Entwicklungsnotizen und Prozessdokumentation
+├── README.md
+└── .gitignore
+```
 
-| Tag | Ziel | Status |
-|-----|------|--------|
-| **Do** | Basis-Setup und Core-Modelle | ✅ |
-| **Fr** | MVVM + Grid-Rendering | ✅ |
-| **Mo** | Bewegung + Gegner + Tile-Effekte | ✅ |
-| **Di** | Kampfsystem + MVP | ✅ |
-| **Mi** | Save/Load + Polish | ✅ |
+Die lokalen Arbeitsordner `.claude/` und `Projektschritte/` sind per `.gitignore` ausgeschlossen und gehören nicht in den normalen Commit-Verlauf.
 
----
+## Tests und Status
 
-## 🎯 Known Constraints & Design-Entscheidungen
+- Der aktuelle Build wurde erfolgreich ausgeführt.
+- Es sind keine automatisierten Unit-Tests im Repository hinterlegt.
+- Die Hauptprüfung ist aktuell der saubere Build plus manuelle Spieltests.
 
-1. **Hardcoded Map statt Procedural Gen**: Simplifiziert die Implementierung und hält den Fokus auf den Spielmechaniken.
-2. **Rundenbasierte Züge statt Echtzeit**: Vereinfacht Kampf- und Gegnerlogik.
-3. **Brushes statt Sprites**: Keine großen Asset-Anforderungen für den Prototyp.
-4. **XML statt Datenbank**: Leicht speicherbar, lesbar und ohne externe Dependencies.
-5. **Kein großes MVVM-Framework**: Eigene `ViewModelBase` und `RelayCommand` für eine schlanke Struktur.
+## Lizenz
 
----
+Dieses Projekt ist ein Lern- und Projektarbeitsprojekt und kann für Lehrzwecke verwendet werden.
 
-## 📖 Weitere Informationen
+## Entwickler
 
-- **Projektname**: `DungeonOfTheFallen`
-- **Team**: Einzelentwicklung
-- **Zeitrahmen**: Projektwoche im April 2026
-- **Zielplattform**: Windows Desktop (.NET 8)
+Robo
 
----
+## Letztes Update
 
-*Zuletzt aktualisiert: Donnerstag, 23. April 2026*
+29. April 2026

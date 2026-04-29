@@ -34,3 +34,7 @@ bld/
 
 # User-specific files
 .vscode/
+
+# Lokale Codex-/Arbeitsordner
+.claude/
+Projektschritte/
