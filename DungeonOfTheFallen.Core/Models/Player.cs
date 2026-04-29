@@ -29,7 +29,7 @@ namespace DungeonOfTheFallen.Core.Models
         // Summe der Rüstungswerte aller ausgerüsteten Teile
         public int TotalArmorValue => EquippedArmor.Values.Sum(a => a.ArmorValue);
 
-        public Player(string name = "Hero")
+        public Player(string name = "Held")
         {
             Name = name;
             PlayerClass = PlayerClass.Warrior;
@@ -43,9 +43,9 @@ namespace DungeonOfTheFallen.Core.Models
                 ArmorClass = 12,
                 Weapon = new WeaponProfile
                 {
-                    Name = "Training Sword",
+                    Name = "Übungsschwert",
                     AttackBonus = 2,
-                    Damage = new DamageRoll { Count = 1, DieSize = DieSize.D8, Bonus = 2, DamageType = DamageType.Slashing, Label = "Slash" }
+                    Damage = new DamageRoll { Count = 1, DieSize = DieSize.D8, Bonus = 2, DamageType = DamageType.Slashing, Label = "Hieb" }
                 }
             };
             XP = 0;
@@ -54,8 +54,8 @@ namespace DungeonOfTheFallen.Core.Models
             Inventory = new Inventory();
             ClassSkill = new PlayerSkill
             {
-                Name = "Shield Slam",
-                Description = "+2 attack roll, weapon damage +1d6 force, and +2 AC for the counterstrike.",
+                Name = "Schildhieb",
+                Description = "+2 Trefferwurf, Waffenschaden +1W6 und +2 RK für den Gegenzug.",
                 AttackBonus = 2,
                 BonusDamageDiceCount = 1,
                 BonusDamageDie = DieSize.D6,

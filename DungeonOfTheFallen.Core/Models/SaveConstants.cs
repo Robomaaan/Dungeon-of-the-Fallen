@@ -2,6 +2,6 @@ namespace DungeonOfTheFallen.Core.Models
 {
     public static class SaveConstants
     {
-        public const int CurrentSaveVersion = 4;
+        public const int CurrentSaveVersion = 5;
     }
 }

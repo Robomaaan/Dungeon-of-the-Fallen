@@ -86,8 +86,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
         {
             Debug.WriteLine("[Menu] Exit clicked");
             var result = MessageBox.Show(
-                "Das Dungeon wartet noch auf dich.\nWirklich beenden?",
-                "Dungeon verlassen",
+                "Das Verlies wartet noch auf dich.\nWirklich beenden?",
+                "Verlies verlassen",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 

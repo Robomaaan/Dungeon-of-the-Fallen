@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Projektarbeit_Dungeon_of_the_Fallen.ViewModels"
         xmlns:conv="clr-namespace:Projektarbeit_Dungeon_of_the_Fallen.Converters"
-        Title="Dungeon of the Fallen – Klassenauswahl"
+        Title="Verlies der Gefallenen – Klassenauswahl"
         Height="740" Width="1080"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
@@ -76,7 +76,7 @@
                                                   Opacity="0.5" ShadowDepth="0"/>
                             </TextBlock.Effect>
                         </TextBlock>
-                        <TextBlock Text="Wähle deinen Helden für das Dungeon"
+                        <TextBlock Text="Wähle deine Klasse für das Verlies"
                                    FontSize="14" FontStyle="Italic" FontFamily="Consolas"
                                    HorizontalAlignment="Center" Foreground="#4a5a6a"
                                    Margin="0,4,0,0"/>
@@ -262,7 +262,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="36"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="HP"
+                                    <TextBlock Grid.Column="0" Text="LP"
                                                FontSize="11" FontFamily="Consolas"
                                                Foreground="#FF6B6B" FontWeight="Bold"
                                                VerticalAlignment="Center"/>
@@ -300,11 +300,11 @@
                                 <!-- Verteidigung -->
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="110"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="36"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="VERTEID."
+                                    <TextBlock Grid.Column="0" Text="VERTEIDIGUNG"
                                                FontSize="11" FontFamily="Consolas"
                                                Foreground="#66BBFF" FontWeight="Bold"
                                                VerticalAlignment="Center"/>

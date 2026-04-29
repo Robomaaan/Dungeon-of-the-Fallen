@@ -12,6 +12,10 @@ namespace DungeonOfTheFallen.Core.Services
         private Enemy? _pendingEncounterEnemy;
         public Enemy? PendingEncounterEnemy => _pendingEncounterEnemy;
 
+        // Wird nach einem abgeschlossenen Kampf oder einem Phasenwechsel zurückgesetzt,
+        // damit alte Begegnungen nicht erneut ausgelöst werden.
+        public void ClearPendingEncounter() => _pendingEncounterEnemy = null;
+
         public TurnManager(GameState gameState) => _gameState = gameState;
 
         public bool MovePlayer(int newX, int newY)
@@ -27,12 +31,12 @@ namespace DungeonOfTheFallen.Core.Services
             {
                 if (string.IsNullOrWhiteSpace(targetTile.DoorKeyId) || !_gameState.HasKey(targetTile.DoorKeyId))
                 {
-                    _gameState.AddCombatLogEntry($"[DOOR] Verschlossen. {targetTile.HintText ?? "Finde den passenden Schlüssel."}");
+                    _gameState.AddCombatLogEntry($"[TÜR] Verschlossen. {targetTile.HintText ?? "Finde den passenden Schlüssel."}");
                     return false;
                 }
 
                 targetTile.TileType = TileType.Floor;
-                _gameState.AddCombatLogEntry($"[DOOR] Du öffnest die Tür mit dem Schlüssel '{targetTile.DoorKeyId}'.");
+                _gameState.AddCombatLogEntry($"[TÜR] Du öffnest die Tür mit dem Schlüssel '{targetTile.DoorKeyId}'.");
             }
 
             if (!targetTile.IsWalkable || (targetTile.Enemy != null && targetTile.Enemy.IsAlive))
@@ -58,7 +62,7 @@ namespace DungeonOfTheFallen.Core.Services
                 }
                 else
                 {
-                    _gameState.AddCombatLogEntry($"[Phase] {_gameState.CurrentPhase} – keine Gegneraktion ausgelöst.");
+                    _gameState.AddCombatLogEntry($"[Phase] {GetPhaseLabel(_gameState.CurrentPhase)} – keine Gegneraktion ausgelöst.");
                 }
             }
 
@@ -139,18 +143,18 @@ namespace DungeonOfTheFallen.Core.Services
             {
                 case Potion potion:
                     _gameState.Player.Inventory.Add(potion);
-                    _gameState.AddCombatLogEntry($"[ITEM] {potion.Name} aufgehoben (+{potion.HealingAmount} HP Heilung)");
+                    _gameState.AddCombatLogEntry($"[GEGENSTAND] {potion.Name} aufgehoben (+{potion.HealingAmount} LP Heilung)");
                     break;
                 case KeyItem key:
                     _gameState.Player.Inventory.Add(key);
                     _gameState.AddKey(key.KeyId);
-                    _gameState.AddCombatLogEntry($"[KEY] {key.Name} gefunden. Passt zu '{key.KeyId}'.");
+                    _gameState.AddCombatLogEntry($"[SCHLÜSSEL] {key.Name} gefunden. Passt zu '{key.KeyId}'.");
                     break;
                 default:
                     if (item.ItemType == ItemType.Gold)
                     {
                         _gameState.Player.Gold += 20;
-                        _gameState.AddCombatLogEntry("[LOOT] 20 Gold gefunden!");
+                        _gameState.AddCombatLogEntry("[BEUTE] 20 Gold gefunden!");
                     }
                     break;
             }
@@ -173,8 +177,8 @@ namespace DungeonOfTheFallen.Core.Services
 
             puzzle.Solved = true;
             _gameState.Player.Gold += 30 + (_gameState.CurrentFloor * 10);
-            _gameState.AddCombatLogEntry($"[PUZZLE] {puzzle.Title}: {puzzle.Riddle}");
-            _gameState.AddCombatLogEntry($"[PUZZLE] Lösungseintrag gefunden. {puzzle.RewardText}");
+            _gameState.AddCombatLogEntry($"[RÄTSEL] {puzzle.Title}: {puzzle.Riddle}");
+            _gameState.AddCombatLogEntry($"[RÄTSEL] Lösungseintrag gefunden. {puzzle.RewardText}");
         }
 
         private void ApplyTileEffect(Tile tile)
@@ -191,7 +195,7 @@ namespace DungeonOfTheFallen.Core.Services
                     if (heal > 0)
                     {
                         _gameState.Player.HP += heal;
-                        _gameState.AddCombatLogEntry($"[HEILUNG] Der Ruhepunkt stellt {heal} HP wieder her!");
+                        _gameState.AddCombatLogEntry($"[HEILUNG] Der Ruhepunkt stellt {heal} LP wieder her!");
                     }
                     break;
                 case TileType.Trap:
@@ -202,13 +206,13 @@ namespace DungeonOfTheFallen.Core.Services
                 case TileType.DivineTrap:
                     if (_gameState.IsGodMode)
                     {
-                        _gameState.AddCombatLogEntry("[Debug] Godmode aktiv - Falle ignoriert.");
+                        _gameState.AddCombatLogEntry("[Gottmodus] Falle ignoriert.");
                         break;
                     }
 
                     var dmg = Math.Max(1, Dice.RollD6() + _gameState.CurrentFloor - 1);
                     _gameState.Player.HP = Math.Max(0, _gameState.Player.HP - dmg);
-                    _gameState.AddCombatLogEntry($"[FALLE] Du hast eine Falle ausgelöst! -{dmg} HP!");
+                    _gameState.AddCombatLogEntry($"[FALLE] Du hast eine Falle ausgelöst! -{dmg} LP!");
                     break;
                 case TileType.KeyPedestal:
                     _gameState.AddCombatLogEntry($"[ALTAR] {tile.HintText}");
@@ -221,5 +225,17 @@ namespace DungeonOfTheFallen.Core.Services
             var tile = _gameState.Map.GetTile(_gameState.Player.PositionX, _gameState.Player.PositionY);
             return tile?.TileType == TileType.Exit;
         }
+
+        private static string GetPhaseLabel(GameFlowPhase phase) => phase switch
+        {
+            GameFlowPhase.Exploration  => "Erkundung",
+            GameFlowPhase.CombatStart   => "Kampfbeginn",
+            GameFlowPhase.PlayerTurn    => "Spielerzug",
+            GameFlowPhase.EnemyTurn     => "Gegnerzug",
+            GameFlowPhase.PostCombat    => "sichere Zwischenphase",
+            GameFlowPhase.LevelComplete => "Ebenenwechsel",
+            GameFlowPhase.GameOver      => "Spiel beendet",
+            _                          => phase.ToString()
+        };
     }
 }

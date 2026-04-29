@@ -25,10 +25,10 @@
     "portraitImage": "/Assets/PlayerClasses/class_rogue_portrait_01.png",
     "spriteImage": "/Assets/PlayerClasses/class_rogue_sprite_idle_01.png",
     "shortDescription": "Präziser Angreifer aus dem Schatten",
-    "hoverDescription": "Der Schurke bewegt sich lautlos durch das Dungeon und trifft seine Feinde dort, wo es am meisten schmerzt. Sein Hinterhalt-Skill kombiniert erhöhten Trefferwurf mit brutalem Stichschaden. Wenig Rüstung – aber wer ihn trifft, hat meistens schon verloren.",
+    "hoverDescription": "Der Schurke bewegt sich lautlos durch das Verlies und trifft seine Feinde dort, wo es am meisten schmerzt. Seine Hinterhalt-Fähigkeit kombiniert erhöhten Trefferwurf mit brutalem Stichschaden. Wenig Rüstung – aber wer ihn trifft, hat meistens schon verloren.",
     "specials": [
       "Hinterhalt: +3 Trefferwurf und +2W4 Stichschaden",
-      "Startwaffe: Rapier 1W8+2 (Stichschaden)",
+      "Startwaffe: Degen 1W8+2 (Stichschaden)",
       "Schnell: 2 Heiltränke zu Spielbeginn"
     ],
     "baseStats": {
@@ -47,7 +47,7 @@
     "shortDescription": "Meister arkaner Zerstörung",
     "hoverDescription": "Der Magier ist eine Glaskanone im reinsten Sinne: kaum Rüstung, kaum Trefferpunkte – aber sein arkanem W10-Angriff trotzen die meisten Gegner nicht lange. Sein Arkaner Stoß kann außerdem Lebenspunkte zurückgewinnen. Empfohlen für erfahrene Spieler.",
     "specials": [
-      "Arkaner Stoß: +1W8 Arkanschaden und +6 HP Heilung",
+      "Arkaner Stoß: +1W8 Arkanschaden und +6 LP Heilung",
       "Startwaffe: Arkaner Fokus 1W10+1 (Arkanschaden)",
       "Widerstand gegen Arkanschaden",
       "2 Heiltränke zu Spielbeginn"
@@ -66,9 +66,9 @@
     "portraitImage": "/Assets/PlayerClasses/class_cleric_portrait_01.png",
     "spriteImage": "/Assets/PlayerClasses/class_cleric_sprite_idle_01.png",
     "shortDescription": "Geweihter Kämpfer des Lichts",
-    "hoverDescription": "Der Kleriker vereint robuste Rüstung mit heiliger Macht. Sein Lichtgebet heilt großzügig, teilt Strahlenschaden aus und erhöht kurzzeitig die Rüstungsklasse. Der ideale Einstieg für Spieler, die Fehler im Dungeon überleben wollen.",
+    "hoverDescription": "Der Kleriker vereint robuste Rüstung mit heiliger Macht. Sein Lichtgebet heilt großzügig, teilt Strahlenschaden aus und erhöht kurzzeitig die Rüstungsklasse. Der ideale Einstieg für Spieler, die Fehler im Verlies überleben wollen.",
     "specials": [
-      "Lichtgebet: +12 HP Heilung, +1W6 Strahlenschaden, +1 RK",
+      "Lichtgebet: +12 LP Heilung, +1W6 Strahlenschaden, +1 RK",
       "Startwaffe: Geweihter Streitkolben 1W6+3 (Schlagschaden)",
       "Widerstand gegen Nekrotenschaden",
       "3 Heiltränke zu Spielbeginn"
@@ -106,8 +106,8 @@
     "displayName": "Assassine",
     "portraitImage": "/Assets/PlayerClasses/class_assassin_portrait_01.png",
     "spriteImage": "/Assets/PlayerClasses/class_assassin_sprite_idle_01.png",
-    "shortDescription": "Hochrisiko-Burtspezialist der Dunkelheit",
-    "hoverDescription": "Der Assassine ist der gefährlichste und riskanteste Held des Dungeons. Mit +4 Trefferwurf und vernichtendem +2W6 Nekrotenschaden kann er Bosse in einer Runde ausschalten – oder selbst ins Gras beißen. Nur für erfahrene Spieler empfohlen.",
+    "shortDescription": "Hochrisiko-Schadensspitzen-Spezialist der Dunkelheit",
+    "hoverDescription": "Der Assassine ist der gefährlichste und riskanteste Held des Verlieses. Mit +4 Trefferwurf und vernichtendem +2W6 Nekrotenschaden kann er Bosse in einer Runde ausschalten – oder selbst ins Gras beißen. Nur für erfahrene Spieler empfohlen.",
     "specials": [
       "Hinrichtung: +4 Trefferwurf und +2W6 Nekrotenschaden",
       "Startwaffe: Zwillingsdolche 1W6+3 (Stichschaden)",

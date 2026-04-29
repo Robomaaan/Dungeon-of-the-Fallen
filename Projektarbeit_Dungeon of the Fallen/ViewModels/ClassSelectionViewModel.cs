@@ -24,7 +24,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 
         public string InfoName          => ActiveInfo?.DisplayName      ?? "— Wähle eine Klasse —";
         public string InfoShortDesc     => ActiveInfo?.ShortDescription  ?? "";
-        public string InfoDescription   => ActiveInfo?.HoverDescription  ?? "Hover über eine Klasse für Details.";
+        public string InfoDescription   => ActiveInfo?.HoverDescription  ?? "Fahre mit der Maus über eine Klasse für Details.";
         public string InfoSpecialsText  => ActiveInfo != null
             ? string.Join("\n", ActiveInfo.Specials.Select(s => "• " + s))
             : "";

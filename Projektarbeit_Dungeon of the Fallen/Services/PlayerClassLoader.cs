@@ -66,7 +66,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
                     ShortDescription = "Meister des Schwertkampfes",
                     HoverDescription = "Gepanzerter Frontkämpfer mit Schildhieb.",
-                    Specials = new List<string> { "Schildhieb: +2 ATK, +2 RK" },
+                    Specials = new List<string> { "Schildhieb: +2 Trefferwurf, +1W6 Wuchtschaden, +2 RK für den Gegenzug" },
                     BaseStats = new ClassBaseStats { Health = 70, Damage = 12, Defense = 15, Speed = 5, Magic = 0 }
                 }, PlayerClass.Warrior),
                 (new PlayerClassDefinition
@@ -74,8 +74,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                     Id = "rogue", DisplayName = "Schurke",
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
                     ShortDescription = "Präziser Angreifer aus dem Schatten",
-                    HoverDescription = "Schnell und tödlich mit Rapier und Hinterhalt.",
-                    Specials = new List<string> { "Hinterhalt: +3 ATK, +2W4 Schaden" },
+                    HoverDescription = "Schnell und tödlich mit Degen und Hinterhalt.",
+                    Specials = new List<string> { "Hinterhalt: +3 Trefferwurf, +2W4 Stichschaden" },
                     BaseStats = new ClassBaseStats { Health = 52, Damage = 14, Defense = 13, Speed = 8, Magic = 1 }
                 }, PlayerClass.Rogue),
                 (new PlayerClassDefinition
@@ -84,7 +84,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
                     ShortDescription = "Meister arkaner Zerstörung",
                     HoverDescription = "Glaskanone mit arkanem W10-Angriff.",
-                    Specials = new List<string> { "Arkaner Stoß: +1W8 Schaden, +6 HP" },
+                    Specials = new List<string> { "Arkaner Stoß: +1W8 Arkanschaden, +6 LP" },
                     BaseStats = new ClassBaseStats { Health = 44, Damage = 16, Defense = 11, Speed = 6, Magic = 10 }
                 }, PlayerClass.Mage),
                 (new PlayerClassDefinition
@@ -93,7 +93,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
                     ShortDescription = "Geweihter Kämpfer des Lichts",
                     HoverDescription = "Robust und heilig mit starkem Heilgebet.",
-                    Specials = new List<string> { "Lichtgebet: +12 HP, +1W6, +1 RK" },
+                    Specials = new List<string> { "Lichtgebet: +12 LP, +1W6 Strahlenschaden, +1 RK" },
                     BaseStats = new ClassBaseStats { Health = 58, Damage = 9, Defense = 14, Speed = 5, Magic = 6 }
                 }, PlayerClass.Cleric),
                 (new PlayerClassDefinition
@@ -102,16 +102,16 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.Services
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
                     ShortDescription = "Beständiger Jäger mit Langbogen",
                     HoverDescription = "Verlässlicher Fernkämpfer mit Pfeilhagel.",
-                    Specials = new List<string> { "Pfeilhagel: +2 ATK, +1W8 Schaden" },
+                    Specials = new List<string> { "Pfeilhagel: +2 Trefferwurf, +1W8 Stichschaden" },
                     BaseStats = new ClassBaseStats { Health = 56, Damage = 12, Defense = 13, Speed = 8, Magic = 2 }
                 }, PlayerClass.Ranger),
                 (new PlayerClassDefinition
                 {
                     Id = "assassin", DisplayName = "Assassine",
                     PortraitImage = "/Assets/Characters/Player/player_idle_down_00.png",
-                    ShortDescription = "Hochrisiko-Burst aus dem Dunkeln",
+                    ShortDescription = "Hochrisiko-Schadensspitze aus dem Dunkeln",
                     HoverDescription = "Höchster Schaden – aber auch höchstes Risiko.",
-                    Specials = new List<string> { "Hinrichtung: +4 ATK, +2W6 Nekrotenschaden" },
+                    Specials = new List<string> { "Hinrichtung: +4 Trefferwurf, +2W6 Nekrotenschaden" },
                     BaseStats = new ClassBaseStats { Health = 48, Damage = 18, Defense = 12, Speed = 9, Magic = 3 }
                 }, PlayerClass.Assassin),
             };

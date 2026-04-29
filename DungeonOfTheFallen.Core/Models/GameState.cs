@@ -25,7 +25,7 @@ namespace DungeonOfTheFallen.Core.Models
 
         public GameState(int dungeonWidth = 20, int dungeonHeight = 20)
         {
-            Player = new Player("Hero");
+            Player = new Player("Held");
             Map = new DungeonMap(dungeonWidth, dungeonHeight);
         }
 

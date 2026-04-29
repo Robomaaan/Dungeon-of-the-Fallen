@@ -33,7 +33,7 @@ namespace DungeonOfTheFallen.Core.Models
                 ArmorClass = defense,
                 Weapon = new WeaponProfile
                 {
-                    Name = "Claws",
+                    Name = "Krallen",
                     Damage = new DamageRoll { Count = 1, DieSize = DieSize.D6, Bonus = 1, DamageType = DamageType.Slashing }
                 }
             };

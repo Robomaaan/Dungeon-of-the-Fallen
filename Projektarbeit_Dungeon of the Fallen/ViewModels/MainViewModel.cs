@@ -86,10 +86,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         public string FloorDisplay => $"Ebene {GameState.CurrentFloor}/{GameState.FinalFloor}";
         public string ObjectiveText => GameState.ExitUnlocked
             ? GamePhase == GameFlowPhase.LevelComplete
-                ? "Ebene abgeschlossen. Drücke Weiter, um zur nächsten Ebene abzusteigen."
+                ? "Ebene abgeschlossen. Drücke Fortsetzen, um zur nächsten Ebene abzusteigen."
                 : "Ziel erreicht: Gehe zum Ausgang."
             : GamePhase == GameFlowPhase.PostCombat
-                ? "Sichere Zwischenphase: Du kannst heilen oder Weiter drücken."
+                ? "Sichere Zwischenphase: Du kannst heilen oder Fortsetzen drücken."
                 : $"Ziel: Besiege alle Gegner und den Boss ({GameState.EnemiesDefeatedOnFloor}/{GameState.FloorObjectiveTarget}).";
         public string ExitStatusText => GameState.ExitUnlocked
             ? "Ausgang frei"
@@ -102,10 +102,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 ? "Die Expedition ist gescheitert."
                 : GamePhase switch
                 {
-                    GameFlowPhase.PostCombat => $"{BiomeDisplayName} · sichere Zwischenphase · Level {GameState.Player.Level}",
-                    GameFlowPhase.LevelComplete => $"{BiomeDisplayName} · Ebenenwechsel bereit · Level {GameState.Player.Level}",
+                    GameFlowPhase.PostCombat => $"{BiomeDisplayName} · sichere Zwischenphase · Stufe {GameState.Player.Level}",
+                    GameFlowPhase.LevelComplete => $"{BiomeDisplayName} · Ebenenwechsel bereit · Stufe {GameState.Player.Level}",
                     GameFlowPhase.CombatStart => $"{BiomeDisplayName} · Kampfstart",
-                    _ => $"{BiomeDisplayName} · Level {GameState.Player.Level} · {GameState.Player.Weapon.Summary}"
+                    _ => $"{BiomeDisplayName} · Stufe {GameState.Player.Level} · {GameState.Player.Weapon.Summary}"
                 };
         public string GamePhaseText => GamePhase switch
         {
@@ -115,15 +115,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             GameFlowPhase.EnemyTurn     => "Gegnerzug",
             GameFlowPhase.PostCombat    => "Sichere Zwischenphase",
             GameFlowPhase.LevelComplete => "Ebenenwechsel",
-            GameFlowPhase.GameOver      => "Game Over",
-            _                          => GamePhase.ToString()
+            GameFlowPhase.GameOver      => "Spiel verloren",
+            _                           => "Unbekannte Phase"
         };
         // Sichere Zwischenphasen blockieren keine freie Bewegung, nur Gegnerzüge.
         public bool CanMove => GamePhase is GameFlowPhase.Exploration
             or GameFlowPhase.PostCombat
             or GameFlowPhase.LevelComplete;
         public bool CanContinue => GamePhase is GameFlowPhase.PostCombat or GameFlowPhase.LevelComplete;
-        public string ContinueButtonText => GamePhase == GameFlowPhase.LevelComplete ? "Nächste Ebene" : "Weiter";
+        public string ContinueButtonText => GamePhase == GameFlowPhase.LevelComplete ? "Nächste Ebene" : "Fortsetzen";
 
         public int DungeonWidth  => GameState.Map.Width;
         public int DungeonHeight => GameState.Map.Height;
@@ -194,7 +194,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             BuildFloor(1, resetProgress: true);
             RefreshTileCollection();
             RebuildRenderObjects();
-            UpdateCombatLog($"Spiel gestartet als {GameState.Player.PlayerClass}! {FloorDisplay} | {BiomeDisplayName} | Finde Schlüssel, löse Rätsel, bezwinge die Bosskammer.");
+            UpdateCombatLog($"Spiel gestartet als {PlayerClassService.GetDisplayName(GameState.Player.PlayerClass)}! {FloorDisplay} | {BiomeDisplayName} | Finde Schlüssel, löse Rätsel, bezwinge die Bosskammer.");
         }
 
         // ── Room System ──────────────────────────────────────────────────────
@@ -202,10 +202,10 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         private void InitializeRooms()
         {
             _rooms.Clear();
-            _rooms.Add(new Room("spawn", "Entrance Hall",    1,  1,  8,  8));
-            _rooms.Add(new Room("east",  "Eastern Chamber", 11,  1, 18,  8));
-            _rooms.Add(new Room("south", "Southern Crypt",   1, 11,  8, 18));
-            _rooms.Add(new Room("boss",  "Boss Chamber",    11, 11, 18, 18));
+            _rooms.Add(new Room("spawn", "Eingangshalle",    1,  1,  8,  8));
+            _rooms.Add(new Room("east",  "Ostkammer",       11,  1, 18,  8));
+            _rooms.Add(new Room("south", "Südgruft",         1, 11,  8, 18));
+            _rooms.Add(new Room("boss",  "Bosskammer",      11, 11, 18, 18));
             _currentRoom = _rooms[0];
         }
 
@@ -366,6 +366,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (IsGameOver)
                 return;
 
+            _turnManager.ClearPendingEncounter();
             UpdateAllTiles();
 
             if (enemyDefeated && GameState.Player.IsAlive)
@@ -385,7 +386,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             var before = GameState.Player.HP;
             GameState.Player.HP = GameState.Player.MaxHP;
-            GameState.AddCombatLogEntry($"[Debug] Spieler vollständig geheilt. HP: {before} → {GameState.Player.HP}.");
+            GameState.AddCombatLogEntry($"[Entwickler] Spieler vollständig geheilt. LP: {before} → {GameState.Player.HP}.");
             UpdateAllTiles();
             UpdateCombatLog();
         }
@@ -394,8 +395,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             GameState.IsGodMode = !GameState.IsGodMode;
             GameState.AddCombatLogEntry(GameState.IsGodMode
-                ? "[Debug] Godmode aktiviert."
-                : "[Debug] Godmode deaktiviert.");
+                ? "[Entwickler] Gottmodus aktiviert."
+                : "[Entwickler] Gottmodus deaktiviert.");
             UpdateCombatLog();
         }
 
@@ -403,12 +404,12 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             if (GameState.CurrentFloor >= GameState.FinalFloor)
             {
-                GameState.AddCombatLogEntry("[Debug] Bereits auf der letzten Ebene.");
+                GameState.AddCombatLogEntry("[Entwickler] Bereits auf der letzten Ebene.");
                 UpdateCombatLog();
                 return;
             }
 
-            GameState.AddCombatLogEntry($"[Debug] Wechsel zu Ebene {GameState.CurrentFloor + 1}.");
+            GameState.AddCombatLogEntry($"[Entwickler] Wechsel zu Ebene {GameState.CurrentFloor + 1}.");
             UpdateCombatLog();
             IsGameOver = false;
             IsVictory = false;
@@ -479,7 +480,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             BuildFloor(nextFloor, resetProgress: false);
             RefreshTileCollection();
             UpdateAllTiles();
-            SetGamePhase(GameFlowPhase.Exploration, $"[ETAGE] Hinabgestiegen zu {FloorDisplay}. Neues Biotop: {BiomeDisplayName}. Rastpause stellt {heal} HP wieder her.");
+            SetGamePhase(GameFlowPhase.Exploration, $"[ETAGE] Hinabgestiegen zu {FloorDisplay}. Neues Biotop: {BiomeDisplayName}. Rastpause stellt {heal} LP wieder her.");
         }
 
         private void ContinueRun()
@@ -513,13 +514,15 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             RefreshTileCollection();
             UpdateAllTiles();
             SetGamePhase(GameFlowPhase.Exploration);
-            UpdateCombatLog($"Spiel neu gestartet als {GameState.Player.PlayerClass} auf {FloorDisplay} in {BiomeDisplayName}.");
+            UpdateCombatLog($"Spiel neu gestartet als {PlayerClassService.GetDisplayName(GameState.Player.PlayerClass)} auf {FloorDisplay} in {BiomeDisplayName}.");
         }
 
         // ── Floor Building ───────────────────────────────────────────────────
 
         private void BuildFloor(int floor, bool resetProgress)
         {
+            _turnManager.ClearPendingEncounter();
+
             if (resetProgress)
             {
                 GameState.Player.XP    = 0;
@@ -683,9 +686,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             var npcDefs = new[]
             {
-                new Npc { Name = "Sister Mirel",    NpcType = NpcType.Healer,     Greeting = "Ruhe deinen Geist aus." },
+                new Npc { Name = "Schwester Mirel",    NpcType = NpcType.Healer,     Greeting = "Ruhe deinen Geist aus." },
                 new Npc { Name = "Dorin",           NpcType = NpcType.Merchant,   Greeting = "Vorräte gegen Gold oder Mut gegen Armut." },
-                new Npc { Name = "Archivist Oren",  NpcType = NpcType.Chronicler, Greeting = "Hinter jedem Siegel wartet eine Geschichte." },
+                new Npc { Name = "Chronist Oren",   NpcType = NpcType.Chronicler, Greeting = "Hinter jedem Siegel wartet eine Geschichte." },
                 new Npc { Name = "Brakka",          NpcType = NpcType.Blacksmith, Greeting = "Zeig mir deine Klinge." },
                 new Npc { Name = "Lysa",            NpcType = NpcType.Scout,      Greeting = "Ich beobachte jede Bewegung hier unten." }
             }.ToList();
@@ -820,7 +823,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 BiomeType.Volcanic   => "Vulkankern",
                 BiomeType.Underwater => "Versunkene Ruinen",
                 BiomeType.Celestial  => "Himmelstor",
-                _                    => CurrentBiome.ToString()
+                _                    => "Unbekanntes Biom"
             };
         }
 

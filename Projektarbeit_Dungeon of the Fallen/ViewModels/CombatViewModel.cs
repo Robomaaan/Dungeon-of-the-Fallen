@@ -116,8 +116,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             UsePotionCommand = new RelayCommand(_ => StartPotionTurn(), _ => IsPlayerTurn);
             UseSkillCommand = new RelayCommand(_ => StartPlayerAttack(CombatActionType.UseSkill), _ => IsPlayerTurn);
 
-            StatusMessage = $"Ein {_enemy.Name} blockiert den Weg! AC {_enemy.ArmorClass} · {_enemy.Weapon.Damage.Describe()}";
-            AddLog($"Kampf gegen {_enemy.Name}! AC {_enemy.ArmorClass} | {_enemy.Weapon.Summary}");
+            StatusMessage = $"Ein {_enemy.Name} blockiert den Weg! RK {_enemy.ArmorClass} · {_enemy.Weapon.Damage.Describe()}";
+            AddLog($"Kampf gegen {_enemy.Name}! RK {_enemy.ArmorClass} | {_enemy.Weapon.Summary}");
         }
 
         private void StartPlayerAttack(CombatActionType actionType)
@@ -171,7 +171,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             StatusMessage = result.PlayerUsedPotion
                 ? "Trank sicher eingesetzt. Du bist wieder am Zug."
                 : result.PotionBlockedByFullHealth
-                    ? "HP bereits voll. Kein Trank verbraucht."
+                    ? "LP bereits voll. Kein Trank verbraucht."
                     : "Kein Trank verfügbar.";
             NotifyStats();
         }
@@ -180,8 +180,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             var before = _gameState.Player.HP;
             _gameState.Player.HP = _gameState.Player.MaxHP;
-            AddLog($"[Debug] Spieler vollständig geheilt. HP: {before} → {_gameState.Player.HP}.");
-            StatusMessage = "Debug-Heilung ausgeführt.";
+            AddLog($"[Entwickler] Spieler vollständig geheilt. LP: {before} → {_gameState.Player.HP}.");
+            StatusMessage = "Entwickler-Heilung ausgeführt.";
             NotifyStats();
         }
 
@@ -189,9 +189,9 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
         {
             _gameState.IsGodMode = !_gameState.IsGodMode;
             AddLog(_gameState.IsGodMode
-                ? "[Debug] Godmode aktiviert."
-                : "[Debug] Godmode deaktiviert.");
-            StatusMessage = _gameState.IsGodMode ? "Godmode aktiviert." : "Godmode deaktiviert.";
+                ? "[Entwickler] Gottmodus aktiviert."
+                : "[Entwickler] Gottmodus deaktiviert.");
+            StatusMessage = _gameState.IsGodMode ? "Gottmodus aktiviert." : "Gottmodus deaktiviert.";
             NotifyStats();
         }
 
@@ -206,7 +206,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
                 return;
 
             ApplyCombatResult(result);
-            AddLog("[Debug] Aktueller Kampf übersprungen.");
+            AddLog("[Entwickler] Aktueller Kampf übersprungen.");
         }
 
         /// <summary>Wird nach Abschluss der simultanen Würfelanimation aufgerufen.</summary>
@@ -224,7 +224,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             if (!IsGameOver)
             {
                 Phase = CombatPhase.PlayerTurn;
-                StatusMessage = $"Dein Zug! Würfle gegen AC {_enemy.ArmorClass}.";
+                StatusMessage = $"Dein Zug! Würfle gegen RK {_enemy.ArmorClass}.";
                 NotifyStats();
             }
         }
@@ -241,7 +241,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             }
 
             Phase = CombatPhase.PlayerTurn;
-            StatusMessage = $"Dein Zug! Würfle gegen AC {_enemy.ArmorClass}.";
+            StatusMessage = $"Dein Zug! Würfle gegen RK {_enemy.ArmorClass}.";
             NotifyStats();
         }
 

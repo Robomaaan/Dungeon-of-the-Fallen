@@ -14,6 +14,26 @@ namespace DungeonOfTheFallen.Core.Models
             return Dice.Roll(count, (int)DieSize) + Bonus;
         }
 
-        public string Describe() => $"{Count}d{(int)DieSize}{(Bonus >= 0 ? $"+{Bonus}" : Bonus)} {DamageType}";
+        public string Describe()
+        {
+            var bonusText = Bonus >= 0 ? $"+{Bonus}" : Bonus.ToString();
+            return $"{Count}W{(int)DieSize}{bonusText} {GetGermanDamageType()}";
+        }
+
+        private string GetGermanDamageType() => DamageType switch
+        {
+            DamageType.Physical   => "physischer Schaden",
+            DamageType.Slashing   => "Hiebschaden",
+            DamageType.Piercing   => "Stichschaden",
+            DamageType.Bludgeoning => "Wuchtschaden",
+            DamageType.Fire      => "Feuerschaden",
+            DamageType.Cold      => "Kälteschaden",
+            DamageType.Lightning => "Blitzschaden",
+            DamageType.Poison    => "Giftschaden",
+            DamageType.Necrotic   => "Nekrotischer Schaden",
+            DamageType.Radiant   => "Strahlenschaden",
+            DamageType.Arcane    => "Arkanschaden",
+            _                    => DamageType.ToString()
+        };
     }
 }

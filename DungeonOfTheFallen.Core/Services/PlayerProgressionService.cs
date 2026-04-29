@@ -20,7 +20,7 @@ namespace DungeonOfTheFallen.Core.Services
                 player.Attack += 2;
                 player.Defense += 1;
                 leveled = true;
-                messages?.Add($"[LEVEL UP] Du bist jetzt Level {player.Level}!");
+                messages?.Add($"[AUFSTIEG] Du bist jetzt Stufe {player.Level}!");
             }
 
             return leveled;

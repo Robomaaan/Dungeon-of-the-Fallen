@@ -26,12 +26,12 @@ namespace DungeonOfTheFallen.Core.Models
         public string Describe(DamageType damageType)
         {
             if (Immunities.Contains(damageType))
-                return "Immune";
+                return "Immun";
             if (Vulnerabilities.Contains(damageType))
-                return "Vulnerable";
+                return "Verwundbar";
             if (Resistances.Contains(damageType))
-                return "Resistant";
-            return "Normal";
+                return "Resistent";
+            return "Keine Besonderheit";
         }
     }
 }

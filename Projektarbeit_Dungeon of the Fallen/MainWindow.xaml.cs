@@ -48,8 +48,8 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
         private void OnAbandonRun()
         {
             var result = MessageBox.Show(
-                "Run wirklich abbrechen?\nUngespeicherter Fortschritt geht verloren.",
-                "Run abbrechen",
+                "Abenteuer wirklich abbrechen?\nUngespeicherter Fortschritt geht verloren.",
+                "Abenteuer abbrechen",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 

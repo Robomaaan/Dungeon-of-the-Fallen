@@ -1,4 +1,5 @@
 using DungeonOfTheFallen.Core.Models;
+using DungeonOfTheFallen.Core.Services;
 
 namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
 {
@@ -10,16 +11,16 @@ namespace Projektarbeit_Dungeon_of_the_Fallen.ViewModels
             " | ",
             Name,
             PlayerClassDisplay,
-            $"Lvl {Level}  HP {HP}/{MaxHP}",
-            $"XP {XP}/{Level * 200}",
+            $"Stufe {Level}  LP {HP}/{MaxHP}",
+            $"EP {XP}/{Level * 200}",
             $"Gold {Gold}",
-            $"Hit +{Attack + WeaponAttackBonus}  AC {ArmorClass}",
-            $"Weapon {WeaponName}",
-            $"Skill {SkillName}",
-            $"Potions {PotionCount}");
+            $"Angriff +{Attack + WeaponAttackBonus}  RK {ArmorClass}",
+            $"Waffe {WeaponName}",
+            $"Fähigkeit {SkillName}",
+            $"Tränke {PotionCount}");
 
         public string Name => Model.Name;
-        public string PlayerClassDisplay => Model.PlayerClass.ToString();
+        public string PlayerClassDisplay => PlayerClassService.GetDisplayName(Model.PlayerClass);
         public int HP => Model.HP;
         public int MaxHP => Model.MaxHP;
         public int Level => Model.Level;

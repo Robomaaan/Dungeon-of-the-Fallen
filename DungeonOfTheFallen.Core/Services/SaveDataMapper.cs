@@ -79,7 +79,11 @@ namespace DungeonOfTheFallen.Core.Services
 
         public static void ApplyToGameState(GameState gameState, SaveData data)
         {
-            gameState.Player.Name = data.PlayerName;
+            var migrateLegacyEnglishDefaults = data.SaveVersion < SaveConstants.CurrentSaveVersion;
+
+            gameState.Player.Name = migrateLegacyEnglishDefaults
+                ? NormalizeLegacyPlayerName(data.PlayerName)
+                : data.PlayerName;
             gameState.Player.PlayerClass = data.PlayerClass;
             gameState.Player.ClassSkill = PlayerClassService.GetProfile(data.PlayerClass).ClassSkill;
             gameState.CurrentFloor = data.CurrentFloor;
@@ -99,7 +103,9 @@ namespace DungeonOfTheFallen.Core.Services
             gameState.Player.PositionY = data.PlayerPositionY;
             gameState.Player.Weapon = new WeaponProfile
             {
-                Name = data.PlayerWeaponName,
+                Name = migrateLegacyEnglishDefaults
+                    ? NormalizeLegacyWeaponName(data.PlayerWeaponName)
+                    : data.PlayerWeaponName,
                 AttackBonus = data.PlayerWeaponAttackBonus,
                 ArmorClassBonus = data.PlayerWeaponArmorClassBonus,
                 Damage = new DamageRoll
@@ -113,7 +119,7 @@ namespace DungeonOfTheFallen.Core.Services
 
             gameState.Player.Inventory.Clear();
             for (var i = 0; i < data.PotionCount; i++)
-                gameState.Player.Inventory.Add(new Potion("Health Potion", 25));
+                gameState.Player.Inventory.Add(new Potion("Heiltrank", 25));
 
             gameState.CollectedKeyIds.Clear();
             foreach (var keyId in data.CollectedKeyIds)
@@ -129,7 +135,15 @@ namespace DungeonOfTheFallen.Core.Services
             gameState.Enemies.Clear();
             foreach (var enemyData in data.Enemies)
             {
-                var enemy = new Enemy(enemyData.Name, enemyData.EnemyType, enemyData.MaxHP, enemyData.Attack, enemyData.Defense, enemyData.IsBoss)
+                var enemy = new Enemy(
+                    migrateLegacyEnglishDefaults
+                        ? NormalizeLegacyEnemyName(enemyData.Name, enemyData.EnemyType)
+                        : enemyData.Name,
+                    enemyData.EnemyType,
+                    enemyData.MaxHP,
+                    enemyData.Attack,
+                    enemyData.Defense,
+                    enemyData.IsBoss)
                 {
                     PositionX = enemyData.PositionX,
                     PositionY = enemyData.PositionY,
@@ -140,7 +154,9 @@ namespace DungeonOfTheFallen.Core.Services
                     Role = enemyData.Role,
                     Weapon = new WeaponProfile
                     {
-                        Name = enemyData.WeaponName,
+                        Name = migrateLegacyEnglishDefaults
+                            ? NormalizeLegacyWeaponName(enemyData.WeaponName)
+                            : enemyData.WeaponName,
                         AttackBonus = enemyData.WeaponAttackBonus,
                         ArmorClassBonus = enemyData.WeaponArmorClassBonus,
                         Damage = new DamageRoll
@@ -205,5 +221,52 @@ namespace DungeonOfTheFallen.Core.Services
         }
 
         private static void tileSetNpc(Tile tile, Npc npc) => tile.Npc = npc;
+
+        private static string NormalizeLegacyPlayerName(string name) =>
+            name switch
+            {
+                "Hero" => "Held",
+                _ => name
+            };
+
+        private static string NormalizeLegacyWeaponName(string name) =>
+            name switch
+            {
+                "Training Sword" => "Übungsschwert",
+                "Fists" => "Fäuste",
+                "Claws" => "Krallen",
+                _ => name
+            };
+
+        private static string NormalizeLegacyEnemyName(string name, EnemyType type) =>
+            name switch
+            {
+                "Goblin" => "Goblin-Plänkler",
+                "Spider" => "Giftspinne",
+                "Skeleton" => "Knochensoldat",
+                "Orc" => "Ork-Plünderer",
+                "Zombie" => "Faulender Zombie",
+                "Troll" => "Höhlentroll",
+                "Ogre" => "Grondak der Knochenbrecher",
+                "Dragon" => "Uralter Drache",
+                "DemonLord" => "Teufelsfürst",
+                "Lich" => "Lich-Souverän",
+                "Boss" => "Kerkertyrann",
+                _ => type switch
+                {
+                    EnemyType.Goblin => "Goblin-Plänkler",
+                    EnemyType.Spider => "Giftspinne",
+                    EnemyType.Skeleton => "Knochensoldat",
+                    EnemyType.Orc => "Ork-Plünderer",
+                    EnemyType.Zombie => "Faulender Zombie",
+                    EnemyType.Troll => "Höhlentroll",
+                    EnemyType.Ogre => "Grondak der Knochenbrecher",
+                    EnemyType.Dragon => "Uralter Drache",
+                    EnemyType.DemonLord => "Teufelsfürst",
+                    EnemyType.Lich => "Lich-Souverän",
+                    EnemyType.Boss => "Kerkertyrann",
+                    _ => name
+                }
+            };
     }
 }

@@ -121,7 +121,7 @@
                     <Run Text="{Binding EnemyHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding EnemyMaxHP, Mode=OneWay}"/>
-                    <Run Text=" HP · AC "/>
+                    <Run Text=" LP · RK "/>
                     <Run Text="{Binding EnemyArmorClass, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Foreground="#b0b0b0" FontSize="11" TextWrapping="Wrap"
@@ -147,7 +147,7 @@
                     <Run Text="{Binding PlayerHP, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding PlayerMaxHP, Mode=OneWay}"/>
-                    <Run Text=" HP · AC "/>
+                    <Run Text=" LP · RK "/>
                     <Run Text="{Binding PlayerArmorClass, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Foreground="#b0b0b0" FontSize="11" TextWrapping="Wrap"

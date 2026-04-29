@@ -472,7 +472,7 @@ namespace Projektarbeit_Dungeon_of_the_Fallen
             ShowDiceFrame(PlayerDiceImage, _pendingPlayerRoll - 1);
             ShowDiceFrame(EnemyDiceImage,  _pendingEnemyRoll  - 1);
 
-            DiceResultLabel.Text = $"Spieler: {_pendingPlayerRoll}   vs   Gegner: {_pendingEnemyRoll}";
+            DiceResultLabel.Text = $"Spieler: {_pendingPlayerRoll}   gegen   Gegner: {_pendingEnemyRoll}";
             Debug.WriteLine("[DiceAnimation] Values shown");
 
             // Zoom, dann Pause, dann Kollision

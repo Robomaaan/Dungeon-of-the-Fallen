@@ -7,7 +7,7 @@ namespace DungeonOfTheFallen.Core.Persistence
     public class SaveData
     {
         public int SaveVersion { get; set; } = SaveConstants.CurrentSaveVersion;
-        public string PlayerName { get; set; } = "Hero";
+        public string PlayerName { get; set; } = "Held";
         public PlayerClass PlayerClass { get; set; } = PlayerClass.Warrior;
         public int CurrentFloor { get; set; } = 1;
         public BiomeType CurrentBiome { get; set; } = BiomeType.Forest;
